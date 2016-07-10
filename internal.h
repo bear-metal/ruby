@@ -429,6 +429,11 @@ struct RHash {
 #define RHASH_IFNONE(h) (RHASH(h)->ifnone)
 #define RHASH_SIZE(h) (RHASH(h)->ntbl ? (st_index_t)RHASH(h)->ntbl->num_entries : 0)
 #endif
+#define RHASH_FREE_ST_IF_EMPTY(hash) \
+    if (RHASH_ITER_LEV(hash) == 0 && RHASH_EMPTY_P(hash)) { \
+        st_free_table(RHASH_TBL(hash)); \
+        RHASH(hash)->ntbl = NULL; \
+    } \
 
 /* missing/setproctitle.c */
 #ifndef HAVE_SETPROCTITLE

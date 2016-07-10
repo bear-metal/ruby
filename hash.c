@@ -1125,8 +1125,8 @@ rb_hash_delete_m(VALUE hash, VALUE key)
 
     rb_hash_modify_check(hash);
     val = rb_hash_delete_entry(hash, key);
-
     if (val != Qundef) {
+      RHASH_FREE_ST_IF_EMPTY(hash);
 	return val;
     }
     else {
@@ -1177,6 +1177,7 @@ rb_hash_shift(VALUE hash)
 	var.key = Qundef;
 	if (RHASH_ITER_LEV(hash) == 0) {
 	    if (st_shift(RHASH(hash)->ntbl, &var.key, &var.val)) {
+		RHASH_FREE_ST_IF_EMPTY(hash);
 		return rb_assoc_new(var.key, var.val);
 	    }
 	}
@@ -1184,6 +1185,7 @@ rb_hash_shift(VALUE hash)
 	    rb_hash_foreach(hash, shift_i_safe, (VALUE)&var);
 	    if (var.key != Qundef) {
 		rb_hash_delete_entry(hash, var.key);
+		RHASH_FREE_ST_IF_EMPTY(hash);
 		return rb_assoc_new(var.key, var.val);
 	    }
 	}
@@ -1226,8 +1228,10 @@ rb_hash_delete_if(VALUE hash)
 {
     RETURN_SIZED_ENUMERATOR(hash, 0, 0, hash_enum_size);
     rb_hash_modify_check(hash);
-    if (RHASH(hash)->ntbl)
-	rb_hash_foreach(hash, delete_if_i, hash);
+    if (RHASH(hash)->ntbl) {
+        rb_hash_foreach(hash, delete_if_i, hash);
+        RHASH_FREE_ST_IF_EMPTY(hash);
+    }
     return hash;
 }
 
@@ -1251,6 +1255,7 @@ rb_hash_reject_bang(VALUE hash)
     if (!n) return Qnil;
     rb_hash_foreach(hash, delete_if_i, hash);
     if (n == RHASH(hash)->ntbl->num_entries) return Qnil;
+    RHASH_FREE_ST_IF_EMPTY(hash);
     return hash;
 }
 
@@ -1435,6 +1440,7 @@ rb_hash_keep_if(VALUE hash)
     rb_hash_modify_check(hash);
     if (RHASH(hash)->ntbl)
 	rb_hash_foreach(hash, keep_if_i, hash);
+    RHASH_FREE_ST_IF_EMPTY(hash);
     return hash;
 }
 
