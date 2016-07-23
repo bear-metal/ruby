@@ -508,6 +508,29 @@ unpack_entries(register st_table *table)
 }
 
 static void
+pack_entries(register st_table *table)
+{
+  st_index_t i = 0;
+  register st_table_entry *ptr = 0, *next;
+  struct list_head *head;
+  //printf("-> packed %p\n", table);
+	head = st_head(table);
+  list_for_each_safe(head, ptr, next, olist) {
+		//printf("XXX: %d %lu\n", MAX_PACKED_HASH, i);
+		PKEY_SET(table, i, ptr->key);
+		PVAL_SET(table, i, ptr->record);
+		PHASH_SET(table, i, ptr->hash);
+		st_free_entry(ptr);
+		i++;
+  }
+  MEMZERO(table->bins, st_table_entry*, table->num_bins);
+  list_head_init(st_head(table));
+  //printf("<- packed %p\n", table);
+  table->entries_packed = 1;
+  table->real_entries = 0;
+}
+
+static void
 add_packed_direct(st_table *table, st_data_t key, st_data_t value, st_index_t hash_val)
 {
     if (table->real_entries < MAX_PACKED_HASH) {
@@ -693,6 +716,7 @@ st_delete(register st_table *table, register st_data_t *key, st_data_t *value)
 	    if (value != 0) *value = ptr->record;
 	    *key = ptr->key;
 	    st_free_entry(ptr);
+			if (!table->entries_packed && table->num_entries <= MAX_PACKED_HASH) pack_entries(table);
 	    return 1;
 	}
     }
@@ -729,6 +753,7 @@ st_delete_safe(register st_table *table, register st_data_t *key, st_data_t *val
 	    *key = ptr->key;
 	    if (value != 0) *value = ptr->record;
 	    ptr->key = ptr->record = never;
+			if (!table->entries_packed && table->num_entries <= MAX_PACKED_HASH) pack_entries(table);
 	    return 1;
 	}
     }
@@ -764,6 +789,7 @@ st_shift(register st_table *table, register st_data_t *key, st_data_t *value)
     if (value != 0) *value = ptr->record;
     *key = ptr->key;
     st_free_entry(ptr);
+		if (!table->entries_packed && table->num_entries <= MAX_PACKED_HASH) pack_entries(table);
     return 1;
 }
 
