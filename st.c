@@ -513,7 +513,7 @@ pack_entries(register st_table *table)
   st_index_t i = 0;
   register st_table_entry *ptr = 0, *next;
   struct list_head *head;
-  //printf("-> packed %p\n", table);
+  //printf("-> packed %p %zu\n", table, st_memsize(table));
 	head = st_head(table);
   list_for_each_safe(head, ptr, next, olist) {
 		//printf("XXX: %d %lu\n", MAX_PACKED_HASH, i);
@@ -524,10 +524,11 @@ pack_entries(register st_table *table)
 		i++;
   }
   MEMZERO(table->bins, st_table_entry*, table->num_bins);
+  //st_free_bins(table->bins, table->num_bins);
   list_head_init(st_head(table));
-  //printf("<- packed %p\n", table);
   table->entries_packed = 1;
   table->real_entries = 0;
+  //printf("<- packed %p %zu\n", table, st_memsize(table));
 }
 
 static void
