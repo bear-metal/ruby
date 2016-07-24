@@ -4420,7 +4420,10 @@ gc_mark_children(rb_objspace_t *objspace, VALUE obj)
 
       case T_HASH:
 	if (any->as.hash.ntbl) {
-	    RHASH_FREE_ST_IF_EMPTY(obj);
+		if (RHASH_ITER_LEV(obj) == 0 && RHASH_EMPTY_P(obj)) {
+		        st_free_table(any->as.hash.ntbl);
+		        any->as.hash.ntbl = NULL;
+					}
 	    mark_hash(objspace, any->as.hash.ntbl);
 	}
 	gc_mark(objspace, any->as.hash.ifnone);
