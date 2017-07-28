@@ -4283,14 +4283,21 @@ nogvl_close(void *ptr)
 static int
 maygvl_close(int fd, int keepgvl)
 {
-    if (keepgvl)
-	return close(fd);
-
+    struct event_io_close_data ev_data;
+    rb_thread_t *th = GET_THREAD();
+    ev_data.fd = fd;
+    if (keepgvl) {
+      ev_data.result = close(fd);
+      EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_CLOSE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+      return ev_data.result;
+    }
     /*
      * close() may block for certain file types (NFS, SO_LINGER sockets,
      * inotify), so let other threads run.
      */
-    return (int)(intptr_t)rb_thread_call_without_gvl(nogvl_close, &fd, RUBY_UBF_IO, 0);
+    ev_data.result = (int)(intptr_t)rb_thread_call_without_gvl(nogvl_close, &fd, RUBY_UBF_IO, 0);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_CLOSE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    return ev_data.result;
 }
 
 static void*

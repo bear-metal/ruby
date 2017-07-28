@@ -2099,6 +2099,7 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_IO_OPEN  0x100
 #define RUBY_EVENT_IO_READ  0x200
 #define RUBY_EVENT_IO_WRITE 0x400
+#define RUBY_EVENT_IO_CLOSE 0x800
 
 /* special events */
 #define RUBY_EVENT_SPECIFIED_LINE         0x010000
@@ -2142,6 +2143,11 @@ struct event_io_write_data {
     int fd;
     size_t capa;
     ssize_t bytes_written;
+};
+
+struct event_io_close_data {
+    int fd;
+    int result;
 };
 
 /* locale insensitive functions */
