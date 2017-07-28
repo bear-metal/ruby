@@ -2095,6 +2095,9 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_FIBER_SWITCH      0x1000
 #define RUBY_EVENT_TRACEPOINT_ALL    0xffff
 
+/* for IO events */
+#define RUBY_EVENT_IO_READ 0x100
+
 /* special events */
 #define RUBY_EVENT_SPECIFIED_LINE         0x010000
 #define RUBY_EVENT_COVERAGE               0x020000
@@ -2119,6 +2122,13 @@ typedef void (*rb_event_hook_func_t)(rb_event_flag_t evflag, VALUE data, VALUE s
 #define RB_EVENT_HOOKS_HAVE_CALLBACK_DATA 1
 void rb_add_event_hook(rb_event_hook_func_t func, rb_event_flag_t events, VALUE data);
 int rb_remove_event_hook(rb_event_hook_func_t func);
+
+/* event callback struct definitions */
+struct event_io_read_data {
+    int fd;
+    size_t capa;
+    ssize_t bytes_read;
+};
 
 /* locale insensitive functions */
 

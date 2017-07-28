@@ -17,6 +17,7 @@
 #include "dln.h"
 #include "encindex.h"
 #include "id.h"
+#include "vm_core.h"
 #include <ctype.h>
 #include <errno.h>
 #include "ruby_atomic.h"
@@ -969,11 +970,17 @@ static ssize_t
 rb_read_internal(int fd, void *buf, size_t count)
 {
     struct io_internal_read_struct iis;
+    struct event_io_read_data ev_data;
+    rb_thread_t *th = GET_THREAD();
     iis.fd = fd;
     iis.buf = buf;
     iis.capa = count;
 
-    return (ssize_t)rb_thread_io_blocking_region(internal_read_func, &iis, fd);
+    ev_data.fd = fd;
+    ev_data.capa = count;
+    ev_data.bytes_read = (ssize_t)rb_thread_io_blocking_region(internal_read_func, &iis, fd);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_READ, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    return ev_data.bytes_read;
 }
 
 static ssize_t
