@@ -6,6 +6,7 @@
 #include "ruby/thread.h"
 #include "ruby/util.h"
 #include "internal.h"
+#include "vm_core.h"
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -2096,7 +2096,9 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_TRACEPOINT_ALL    0xffff
 
 /* for IO events */
-#define RUBY_EVENT_IO_READ 0x100
+#define RUBY_EVENT_IO_OPEN  0x100
+#define RUBY_EVENT_IO_READ  0x200
+#define RUBY_EVENT_IO_WRITE 0x400
 
 /* special events */
 #define RUBY_EVENT_SPECIFIED_LINE         0x010000
@@ -2124,10 +2126,22 @@ void rb_add_event_hook(rb_event_hook_func_t func, rb_event_flag_t events, VALUE 
 int rb_remove_event_hook(rb_event_hook_func_t func);
 
 /* event callback struct definitions */
+struct event_io_open_data {
+    int fd;
+    VALUE filename;
+    int mode;
+};
+
 struct event_io_read_data {
     int fd;
     size_t capa;
     ssize_t bytes_read;
+};
+
+struct event_io_write_data {
+    int fd;
+    size_t capa;
+    ssize_t bytes_written;
 };
 
 /* locale insensitive functions */

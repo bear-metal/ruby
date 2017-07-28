@@ -987,23 +987,35 @@ static ssize_t
 rb_write_internal(int fd, const void *buf, size_t count)
 {
     struct io_internal_write_struct iis;
+    struct event_io_write_data ev_data;
+    rb_thread_t *th = GET_THREAD();
     iis.fd = fd;
     iis.buf = buf;
     iis.capa = count;
 
-    return (ssize_t)rb_thread_io_blocking_region(internal_write_func, &iis, fd);
+    ev_data.fd = fd;
+    ev_data.capa = count;
+    ev_data.bytes_written = (ssize_t)rb_thread_io_blocking_region(internal_write_func, &iis, fd);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_WRITE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    return ev_data.bytes_written;
 }
 
 static ssize_t
 rb_write_internal2(int fd, const void *buf, size_t count)
 {
     struct io_internal_write_struct iis;
+    struct event_io_write_data ev_data;
+    rb_thread_t *th = GET_THREAD();
     iis.fd = fd;
     iis.buf = buf;
     iis.capa = count;
 
-    return (ssize_t)rb_thread_call_without_gvl2(internal_write_func2, &iis,
+    ev_data.fd = fd;
+    ev_data.capa = count;
+    ev_data.bytes_written = (ssize_t)rb_thread_call_without_gvl2(internal_write_func2, &iis,
 						RUBY_UBF_IO, NULL);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_WRITE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    return ev_data.bytes_written;
 }
 
 #ifdef HAVE_WRITEV
@@ -5874,6 +5886,9 @@ rb_file_open_generic(VALUE io, VALUE filename, int oflags, int fmode,
 static VALUE
 rb_file_open_internal(VALUE io, VALUE filename, const char *modestr)
 {
+    VALUE file;
+    struct event_io_open_data ev_data;
+    rb_thread_t *th = GET_THREAD();
     int fmode = rb_io_modestr_fmode(modestr);
     const char *p = strchr(modestr, ':');
     convconfig_t convconfig;
@@ -5892,11 +5907,16 @@ rb_file_open_internal(VALUE io, VALUE filename, const char *modestr)
         convconfig.ecopts = Qnil;
     }
 
-    return rb_file_open_generic(io, filename,
+    file = rb_file_open_generic(io, filename,
             rb_io_fmode_oflags(fmode),
             fmode,
             &convconfig,
             0666);
+    ev_data.fd = RFILE(file)->fptr->fd;
+    ev_data.filename = rb_str_dup(filename);
+    ev_data.mode = fmode;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_OPEN, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    return file;
 }
 
 VALUE
