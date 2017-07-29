@@ -4304,17 +4304,24 @@ static void*
 nogvl_fclose(void *ptr)
 {
     FILE *file = ptr;
-
     return (void*)(intptr_t)fclose(file);
 }
 
 static int
 maygvl_fclose(FILE *file, int keepgvl)
 {
-    if (keepgvl)
-	return fclose(file);
+    struct event_io_close_data ev_data;
+    rb_thread_t *th = GET_THREAD();
+    ev_data.fd = file->_file;
+    if (keepgvl) {
+      ev_data.result = fclose(file);
+      EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_CLOSE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+      return ev_data.result;
+    }
 
-    return (int)(intptr_t)rb_thread_call_without_gvl(nogvl_fclose, file, RUBY_UBF_IO, 0);
+    ev_data.result = (int)(intptr_t)rb_thread_call_without_gvl(nogvl_fclose, file, RUBY_UBF_IO, 0);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_CLOSE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    return ev_data.result;
 }
 
 static void free_io_buffer(rb_io_buffer_t *buf);
