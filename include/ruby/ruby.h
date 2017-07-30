@@ -2100,6 +2100,10 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_IO_READ  0x200
 #define RUBY_EVENT_IO_WRITE 0x400
 #define RUBY_EVENT_IO_CLOSE 0x800
+#define RUBY_EVENT_IO_ALL   0xfff
+
+/* for Socket events */
+#define RUBY_EVENT_SOCKET_NEW  0x10
 
 /* special events */
 #define RUBY_EVENT_SPECIFIED_LINE         0x010000
@@ -2129,7 +2133,7 @@ int rb_remove_event_hook(rb_event_hook_func_t func);
 /* event callback struct definitions */
 struct event_io_open_data {
     int fd;
-    VALUE filename;
+    char *filename;
     int mode;
 };
 
@@ -2148,6 +2152,13 @@ struct event_io_write_data {
 struct event_io_close_data {
     int fd;
     int result;
+};
+
+struct event_socket_new_data {
+    int fd;
+    int domain;
+    int type;
+    int protocol;
 };
 
 /* locale insensitive functions */

@@ -5927,7 +5927,7 @@ rb_file_open_internal(VALUE io, VALUE filename, const char *modestr)
             &convconfig,
             0666);
     ev_data.fd = RFILE(file)->fptr->fd;
-    ev_data.filename = rb_str_dup(filename);
+    ev_data.filename = RSTRING_PTR(rb_str_dup(filename));
     ev_data.mode = fmode;
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_OPEN, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
     return file;

@@ -1,6 +1,7 @@
 # frozen_string_literal: false
 require 'test/unit'
 require '-test-/tracepoint'
+require 'tempfile'
 
 class TestTracepointObj < Test::Unit::TestCase
   def test_not_available_from_ruby
@@ -77,4 +78,18 @@ class TestTracepointObj < Test::Unit::TestCase
     end
   end
 
+  def test_tracks_io_events
+    result = IOHook.enable do
+      5.times do |i|
+        f = Tempfile.new("io_events_test_#{i}")
+        f.write(i.to_s)
+        f.rewind
+        f.read
+        f.close
+        f.unlink
+      end
+    end
+
+    assert_equal [5,5,5,5], result
+  end
 end

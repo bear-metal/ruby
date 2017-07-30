@@ -10,6 +10,9 @@
 
 #include "rubysocket.h"
 
+rb_thread_t *ruby_current_thread = 0;
+rb_event_flag_t ruby_vm_event_flags;
+
 static VALUE sym_wait_writable;
 
 static VALUE sock_s_unpack_sockaddr_in(VALUE, VALUE);
@@ -132,19 +135,24 @@ setup_domain_and_type(VALUE domain, int *dv, VALUE type, int *tv)
 static VALUE
 sock_initialize(int argc, VALUE *argv, VALUE sock)
 {
+    struct event_socket_new_data ev_data;
     VALUE domain, type, protocol;
-    int fd;
     int d, t;
+    rb_thread_t *th = GET_THREAD();
 
     rb_scan_args(argc, argv, "21", &domain, &type, &protocol);
     if (NIL_P(protocol))
         protocol = INT2FIX(0);
 
     setup_domain_and_type(domain, &d, type, &t);
-    fd = rsock_socket(d, t, NUM2INT(protocol));
-    if (fd < 0) rb_sys_fail("socket(2)");
-
-    return rsock_init_sock(sock, fd);
+    ev_data.fd = rsock_socket(d, t, NUM2INT(protocol));
+    if (ev_data.fd < 0) rb_sys_fail("socket(2)");
+    ev_data.domain = d;
+    ev_data.type = t;
+    ev_data.protocol = FIX2INT(protocol);
+    sock = rsock_init_sock(sock, ev_data.fd);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_SOCKET_NEW, sock, 0, 0, 0, (VALUE)&ev_data);
+    return sock;
 }
 
 #if defined HAVE_SOCKETPAIR
@@ -280,10 +288,12 @@ rsock_socketpair(int domain, int type, int protocol, int sv[2])
 VALUE
 rsock_sock_s_socketpair(int argc, VALUE *argv, VALUE klass)
 {
+    struct event_socket_new_data ev_data;
     VALUE domain, type, protocol;
     int d, t, p, sp[2];
     int ret;
     VALUE s1, s2, r;
+    rb_thread_t *th = GET_THREAD();
 
     rb_scan_args(argc, argv, "21", &domain, &type, &protocol);
     if (NIL_P(protocol))
@@ -291,13 +301,20 @@ rsock_sock_s_socketpair(int argc, VALUE *argv, VALUE klass)
 
     setup_domain_and_type(domain, &d, type, &t);
     p = NUM2INT(protocol);
+    ev_data.domain = d;
+    ev_data.type = t;
+    ev_data.protocol = p;
     ret = rsock_socketpair(d, t, p, sp);
     if (ret < 0) {
 	rb_sys_fail("socketpair(2)");
     }
 
     s1 = rsock_init_sock(rb_obj_alloc(klass), sp[0]);
+    ev_data.fd = sp[0];
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_SOCKET_NEW, s1, 0, 0, 0, (VALUE)&ev_data);
     s2 = rsock_init_sock(rb_obj_alloc(klass), sp[1]);
+    ev_data.fd = sp[1];
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_SOCKET_NEW, s2, 0, 0, 0, (VALUE)&ev_data);
     r = rb_assoc_new(s1, s2);
     if (rb_block_given_p()) {
         return rb_ensure(pair_yield, r, io_close, s1);
