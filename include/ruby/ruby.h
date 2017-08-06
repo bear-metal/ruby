@@ -2100,7 +2100,7 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_IO_READ  0x200
 #define RUBY_EVENT_IO_WRITE 0x400
 #define RUBY_EVENT_IO_CLOSE 0x800
-#define RUBY_EVENT_IO_ALL   0xfff
+#define RUBY_EVENT_IO_ALL   0xF00
 
 /* for Socket events */
 #define RUBY_EVENT_SOCKET_NEW  0x10

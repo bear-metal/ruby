@@ -40,7 +40,7 @@ static VALUE
 rb_enable_io_events(VALUE self)
 {
     struct io_events_track track = {0, 0, 0, 0, rb_hash_new()};
-    VALUE tpval = rb_tracepoint_new(0, RUBY_EVENT_IO_ALL, rb_io_events_i, &track);
+    VALUE tpval = rb_tracepoint_new(0, RUBY_EVENT_IO_OPEN | RUBY_EVENT_IO_READ | RUBY_EVENT_IO_WRITE | RUBY_EVENT_IO_CLOSE, rb_io_events_i, &track);
     rb_tracepoint_enable(tpval);
     VALUE result = rb_ary_new();
 
@@ -51,7 +51,6 @@ rb_enable_io_events(VALUE self)
     rb_ary_push(result, SIZET2NUM(track.read_count));
     rb_ary_push(result, SIZET2NUM(track.write_count));
     rb_ary_push(result, SIZET2NUM(track.close_count));
-    rb_ary_push(result, track.ios);
 
     return result;
 }
