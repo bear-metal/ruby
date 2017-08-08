@@ -970,52 +970,55 @@ static ssize_t
 rb_read_internal(int fd, void *buf, size_t count)
 {
     struct io_internal_read_struct iis;
-    struct event_io_read_data ev_data;
+    rb_event_io_data_t ev_data;
     rb_thread_t *th = GET_THREAD();
     iis.fd = fd;
     iis.buf = buf;
     iis.capa = count;
 
+    ev_data.flag = RUBY_EVENT_IO_READ;
     ev_data.fd = fd;
     ev_data.capa = count;
-    ev_data.bytes_read = (ssize_t)rb_thread_io_blocking_region(internal_read_func, &iis, fd);
-    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_READ, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
-    return ev_data.bytes_read;
+    ev_data.bytes_transferred = (ssize_t)rb_thread_io_blocking_region(internal_read_func, &iis, fd);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    return ev_data.bytes_transferred;
 }
 
 static ssize_t
 rb_write_internal(int fd, const void *buf, size_t count)
 {
     struct io_internal_write_struct iis;
-    struct event_io_write_data ev_data;
+    rb_event_io_data_t ev_data;
     rb_thread_t *th = GET_THREAD();
     iis.fd = fd;
     iis.buf = buf;
     iis.capa = count;
 
+    ev_data.flag = RUBY_EVENT_IO_WRITE;
     ev_data.fd = fd;
     ev_data.capa = count;
-    ev_data.bytes_written = (ssize_t)rb_thread_io_blocking_region(internal_write_func, &iis, fd);
-    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_WRITE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
-    return ev_data.bytes_written;
+    ev_data.bytes_transferred = (ssize_t)rb_thread_io_blocking_region(internal_write_func, &iis, fd);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    return ev_data.bytes_transferred;
 }
 
 static ssize_t
 rb_write_internal2(int fd, const void *buf, size_t count)
 {
     struct io_internal_write_struct iis;
-    struct event_io_write_data ev_data;
+    rb_event_io_data_t ev_data;
     rb_thread_t *th = GET_THREAD();
     iis.fd = fd;
     iis.buf = buf;
     iis.capa = count;
 
+    ev_data.flag = RUBY_EVENT_IO_WRITE;
     ev_data.fd = fd;
     ev_data.capa = count;
-    ev_data.bytes_written = (ssize_t)rb_thread_call_without_gvl2(internal_write_func2, &iis,
+    ev_data.bytes_transferred = (ssize_t)rb_thread_call_without_gvl2(internal_write_func2, &iis,
 						RUBY_UBF_IO, NULL);
-    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_WRITE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
-    return ev_data.bytes_written;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    return ev_data.bytes_transferred;
 }
 
 #ifdef HAVE_WRITEV
@@ -4283,12 +4286,13 @@ nogvl_close(void *ptr)
 static int
 maygvl_close(int fd, int keepgvl)
 {
-    struct event_io_close_data ev_data;
+    rb_event_io_data_t ev_data;
     rb_thread_t *th = GET_THREAD();
+    ev_data.flag = RUBY_EVENT_IO_CLOSE;
     ev_data.fd = fd;
     if (keepgvl) {
       ev_data.result = close(fd);
-      EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_CLOSE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+      EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
       return ev_data.result;
     }
     /*
@@ -4296,7 +4300,7 @@ maygvl_close(int fd, int keepgvl)
      * inotify), so let other threads run.
      */
     ev_data.result = (int)(intptr_t)rb_thread_call_without_gvl(nogvl_close, &fd, RUBY_UBF_IO, 0);
-    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_CLOSE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
     return ev_data.result;
 }
 
@@ -4310,17 +4314,18 @@ nogvl_fclose(void *ptr)
 static int
 maygvl_fclose(FILE *file, int keepgvl)
 {
-    struct event_io_close_data ev_data;
+    rb_event_io_data_t ev_data;
     rb_thread_t *th = GET_THREAD();
+    ev_data.flag = RUBY_EVENT_IO_CLOSE;
     ev_data.fd = file->_file;
     if (keepgvl) {
       ev_data.result = fclose(file);
-      EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_CLOSE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+      EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
       return ev_data.result;
     }
 
     ev_data.result = (int)(intptr_t)rb_thread_call_without_gvl(nogvl_fclose, file, RUBY_UBF_IO, 0);
-    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_CLOSE, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
     return ev_data.result;
 }
 
@@ -5901,7 +5906,7 @@ static VALUE
 rb_file_open_internal(VALUE io, VALUE filename, const char *modestr)
 {
     VALUE file;
-    struct event_io_open_data ev_data;
+    rb_event_io_data_t ev_data;
     rb_thread_t *th = GET_THREAD();
     int fmode = rb_io_modestr_fmode(modestr);
     const char *p = strchr(modestr, ':');
@@ -5926,10 +5931,11 @@ rb_file_open_internal(VALUE io, VALUE filename, const char *modestr)
             fmode,
             &convconfig,
             0666);
+    ev_data.flag = RUBY_EVENT_IO_OPEN;
     ev_data.fd = RFILE(file)->fptr->fd;
-    ev_data.filename = RSTRING_PTR(rb_str_dup(filename));
-    ev_data.mode = fmode;
-    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO_OPEN, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+    ev_data.file.name = RSTRING_PTR(rb_str_dup(filename));
+    ev_data.file.mode = fmode;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
     return file;
 }
 

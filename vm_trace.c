@@ -826,7 +826,7 @@ rb_tracearg_self(rb_trace_arg_t *trace_arg)
 VALUE
 rb_tracearg_return_value(rb_trace_arg_t *trace_arg)
 {
-    if (trace_arg->event & (RUBY_EVENT_RETURN | RUBY_EVENT_C_RETURN | RUBY_EVENT_B_RETURN)) {
+    if (trace_arg->event & (RUBY_EVENT_RETURN | RUBY_EVENT_C_RETURN | RUBY_EVENT_B_RETURN | RUBY_EVENT_IO)) {
 	/* ok */
     }
     else {

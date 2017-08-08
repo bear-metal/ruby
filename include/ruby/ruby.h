@@ -2095,16 +2095,6 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_FIBER_SWITCH      0x1000
 #define RUBY_EVENT_TRACEPOINT_ALL    0xffff
 
-/* for IO events */
-#define RUBY_EVENT_IO_OPEN  0x100
-#define RUBY_EVENT_IO_READ  0x200
-#define RUBY_EVENT_IO_WRITE 0x400
-#define RUBY_EVENT_IO_CLOSE 0x800
-#define RUBY_EVENT_IO_ALL   0xF00
-
-/* for Socket events */
-#define RUBY_EVENT_SOCKET_NEW  0x10
-
 /* special events */
 #define RUBY_EVENT_SPECIFIED_LINE         0x010000
 #define RUBY_EVENT_COVERAGE               0x020000
@@ -2122,6 +2112,39 @@ int ruby_native_thread_p(void);
 #define RUBY_INTERNAL_EVENT_GC_EXIT        0x4000000
 #define RUBY_INTERNAL_EVENT_OBJSPACE_MASK  0x7f00000
 #define RUBY_INTERNAL_EVENT_MASK          0xfffe0000
+
+/* for IO events */
+#define RUBY_EVENT_IO         0x8000000
+
+#define RUBY_EVENT_IO_OPEN    0x0001
+#define RUBY_EVENT_IO_CLOSE   0x0002
+#define RUBY_EVENT_IO_READ    0x0004
+#define RUBY_EVENT_IO_WRITE   0x0008
+
+#define RUBY_EVENT_IO_SOCKET  0x0010
+
+/* event callback struct definitions */
+typedef uint32_t rb_event_io_flag_t;
+typedef struct rb_event_io_data_t {
+    rb_event_io_flag_t flag;
+    int fd;
+    size_t capa;
+    ssize_t bytes_transferred;
+    int result;
+    union {
+      struct {
+        char *name;
+        int mode;
+      } file;
+    };
+    union {
+      struct {
+        int domain;
+        int type;
+        int protocol;
+  	  } socket;
+    };
+} rb_event_io_data_t;
 
 typedef uint32_t rb_event_flag_t;
 typedef void (*rb_event_hook_func_t)(rb_event_flag_t evflag, VALUE data, VALUE self, ID mid, VALUE klass);
