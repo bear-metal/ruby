@@ -970,9 +970,7 @@ static ssize_t
 rb_read_internal(int fd, void *buf, size_t count)
 {
     struct io_internal_read_struct iis;
-    rb_event_io_data_t ev_data;
-    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
-    rb_thread_t *th = GET_THREAD();
+    RUBY_EVENT_IO_SETUP();
     iis.fd = fd;
     iis.buf = buf;
     iis.capa = count;
@@ -989,9 +987,7 @@ static ssize_t
 rb_write_internal(int fd, const void *buf, size_t count)
 {
     struct io_internal_write_struct iis;
-    rb_event_io_data_t ev_data;
-    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
-    rb_thread_t *th = GET_THREAD();
+    RUBY_EVENT_IO_SETUP();
     iis.fd = fd;
     iis.buf = buf;
     iis.capa = count;
@@ -1008,9 +1004,7 @@ static ssize_t
 rb_write_internal2(int fd, const void *buf, size_t count)
 {
     struct io_internal_write_struct iis;
-    rb_event_io_data_t ev_data;
-    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
-    rb_thread_t *th = GET_THREAD();
+    RUBY_EVENT_IO_SETUP();
     iis.fd = fd;
     iis.buf = buf;
     iis.capa = count;
@@ -1040,14 +1034,13 @@ rb_writev_internal(int fd, const struct iovec *iov, int iovcnt)
 static VALUE
 io_flush_buffer_sync(void *arg)
 {
-    rb_event_io_data_t ev_data;
-    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
-    rb_thread_t *th = GET_THREAD();
+    RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr = arg;
     long l = fptr->wbuf.len;
     ev_data.flag = RUBY_EVENT_IO_WRITE;
     ev_data.fd = fptr->fd;
     ev_data.capa = l;
+    //ev_data.file.name = StringValueCStr(fptr->pathv);
     ev_data.bytes_transferred = write(fptr->fd, fptr->wbuf.ptr+fptr->wbuf.off, (size_t)l);
 
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
@@ -4297,9 +4290,7 @@ nogvl_close(void *ptr)
 static int
 maygvl_close(int fd, int keepgvl)
 {
-    rb_event_io_data_t ev_data;
-    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
-    rb_thread_t *th = GET_THREAD();
+    RUBY_EVENT_IO_SETUP();
     ev_data.flag = RUBY_EVENT_IO_CLOSE;
     ev_data.fd = fd;
     if (keepgvl) {
@@ -4326,9 +4317,7 @@ nogvl_fclose(void *ptr)
 static int
 maygvl_fclose(FILE *file, int keepgvl)
 {
-    rb_event_io_data_t ev_data;
-    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
-    rb_thread_t *th = GET_THREAD();
+    RUBY_EVENT_IO_SETUP();
     ev_data.flag = RUBY_EVENT_IO_CLOSE;
     ev_data.fd = file->_file;
     if (keepgvl) {

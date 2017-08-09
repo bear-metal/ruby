@@ -2123,6 +2123,11 @@ int ruby_native_thread_p(void);
 
 #define RUBY_EVENT_IO_SOCKET  0x0010
 
+#define RUBY_EVENT_IO_SETUP() \
+  rb_event_io_data_t ev_data; \
+  memset(&ev_data, 0, sizeof(rb_event_io_data_t)); \
+  rb_thread_t *th = GET_THREAD(); \
+
 /* event callback struct definitions */
 typedef uint32_t rb_event_io_flag_t;
 typedef struct rb_event_io_data_t {
