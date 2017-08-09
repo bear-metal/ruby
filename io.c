@@ -971,6 +971,7 @@ rb_read_internal(int fd, void *buf, size_t count)
 {
     struct io_internal_read_struct iis;
     rb_event_io_data_t ev_data;
+    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
     rb_thread_t *th = GET_THREAD();
     iis.fd = fd;
     iis.buf = buf;
@@ -989,6 +990,7 @@ rb_write_internal(int fd, const void *buf, size_t count)
 {
     struct io_internal_write_struct iis;
     rb_event_io_data_t ev_data;
+    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
     rb_thread_t *th = GET_THREAD();
     iis.fd = fd;
     iis.buf = buf;
@@ -1007,6 +1009,7 @@ rb_write_internal2(int fd, const void *buf, size_t count)
 {
     struct io_internal_write_struct iis;
     rb_event_io_data_t ev_data;
+    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
     rb_thread_t *th = GET_THREAD();
     iis.fd = fd;
     iis.buf = buf;
@@ -1037,18 +1040,26 @@ rb_writev_internal(int fd, const struct iovec *iov, int iovcnt)
 static VALUE
 io_flush_buffer_sync(void *arg)
 {
+    rb_event_io_data_t ev_data;
+    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
+    rb_thread_t *th = GET_THREAD();
     rb_io_t *fptr = arg;
     long l = fptr->wbuf.len;
-    ssize_t r = write(fptr->fd, fptr->wbuf.ptr+fptr->wbuf.off, (size_t)l);
+    ev_data.flag = RUBY_EVENT_IO_WRITE;
+    ev_data.fd = fptr->fd;
+    ev_data.capa = l;
+    ev_data.bytes_transferred = write(fptr->fd, fptr->wbuf.ptr+fptr->wbuf.off, (size_t)l);
 
-    if (fptr->wbuf.len <= r) {
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
+
+    if (fptr->wbuf.len <= ev_data.bytes_transferred) {
 	fptr->wbuf.off = 0;
 	fptr->wbuf.len = 0;
 	return 0;
     }
-    if (0 <= r) {
-	fptr->wbuf.off += (int)r;
-	fptr->wbuf.len -= (int)r;
+    if (0 <= ev_data.bytes_transferred) {
+	fptr->wbuf.off += (int)ev_data.bytes_transferred;
+	fptr->wbuf.len -= (int)ev_data.bytes_transferred;
 	errno = EAGAIN;
     }
     return (VALUE)-1;
@@ -4287,6 +4298,7 @@ static int
 maygvl_close(int fd, int keepgvl)
 {
     rb_event_io_data_t ev_data;
+    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
     rb_thread_t *th = GET_THREAD();
     ev_data.flag = RUBY_EVENT_IO_CLOSE;
     ev_data.fd = fd;
@@ -4315,6 +4327,7 @@ static int
 maygvl_fclose(FILE *file, int keepgvl)
 {
     rb_event_io_data_t ev_data;
+    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
     rb_thread_t *th = GET_THREAD();
     ev_data.flag = RUBY_EVENT_IO_CLOSE;
     ev_data.fd = file->_file;
@@ -5872,6 +5885,9 @@ rb_file_open_generic(VALUE io, VALUE filename, int oflags, int fmode,
 		     const convconfig_t *convconfig, mode_t perm)
 {
     VALUE pathv;
+    rb_event_io_data_t ev_data;
+    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
+    rb_thread_t *th = GET_THREAD();
     rb_io_t *fptr;
     convconfig_t cc;
     if (!convconfig) {
@@ -5898,7 +5914,11 @@ rb_file_open_generic(VALUE io, VALUE filename, int oflags, int fmode,
     fptr->fd = rb_sysopen(pathv, oflags, perm);
     io_check_tty(fptr);
     if (fmode & FMODE_SETENC_BY_BOM) io_set_encoding_by_bom(io);
-
+    ev_data.flag = RUBY_EVENT_IO_OPEN;
+    ev_data.fd = fptr->fd;
+    ev_data.file.name = StringValueCStr(pathv);
+    ev_data.file.mode = fptr->mode;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
     return io;
 }
 
@@ -5906,8 +5926,6 @@ static VALUE
 rb_file_open_internal(VALUE io, VALUE filename, const char *modestr)
 {
     VALUE file;
-    rb_event_io_data_t ev_data;
-    rb_thread_t *th = GET_THREAD();
     int fmode = rb_io_modestr_fmode(modestr);
     const char *p = strchr(modestr, ':');
     convconfig_t convconfig;
@@ -5931,11 +5949,6 @@ rb_file_open_internal(VALUE io, VALUE filename, const char *modestr)
             fmode,
             &convconfig,
             0666);
-    ev_data.flag = RUBY_EVENT_IO_OPEN;
-    ev_data.fd = RFILE(file)->fptr->fd;
-    ev_data.file.name = RSTRING_PTR(rb_str_dup(filename));
-    ev_data.file.mode = fmode;
-    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
     return file;
 }
 

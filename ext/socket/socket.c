@@ -290,6 +290,7 @@ VALUE
 rsock_sock_s_socketpair(int argc, VALUE *argv, VALUE klass)
 {
     rb_event_io_data_t ev_data;
+    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
     VALUE domain, type, protocol;
     int d, t, p, sp[2];
     int ret;

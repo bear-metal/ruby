@@ -89,6 +89,6 @@ class TestTracepointObj < Test::Unit::TestCase
       end
     end
 
-    assert_equal [5,5,5,5], result
+    assert_equal [5,10,5,5], result
   end
 end

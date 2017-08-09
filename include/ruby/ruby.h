@@ -2133,7 +2133,7 @@ typedef struct rb_event_io_data_t {
     int result;
     union {
       struct {
-        char *name;
+        const char *name;
         int mode;
       } file;
     };

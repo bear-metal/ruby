@@ -9,6 +9,11 @@ struct io_events_track {
     VALUE ios;
 };
 
+struct socket_events_track {
+    size_t sockets_count;
+    VALUE ios;
+};
+
 static void
 rb_io_events_i(VALUE tpval, void *data)
 {
@@ -16,22 +21,26 @@ rb_io_events_i(VALUE tpval, void *data)
   struct io_events_track *track = data;
 
   VALUE io = rb_tracearg_self(tparg);
-  rb_event_io_data_t *io_evt_data = (rb_event_io_data_t*)rb_tracearg_return_value(tparg);
-  switch(io_evt_data->flag){
+  rb_event_io_data_t *evt_data = (rb_event_io_data_t*)rb_tracearg_return_value(tparg);
+  switch(evt_data->flag){
     case RUBY_EVENT_IO_OPEN:
          track->open_count++;
+				 printf("RUBY_EVENT_IO_OPEN name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
          break;
     case RUBY_EVENT_IO_READ:
          track->read_count++;
+				 printf("RUBY_EVENT_IO_READ name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
          break;
     case RUBY_EVENT_IO_WRITE:
          track->write_count++;
+				 printf("RUBY_EVENT_IO_WRITE name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
          break;
     case RUBY_EVENT_IO_CLOSE:
          track->close_count++;
+				 printf("RUBY_EVENT_IO_CLOSE name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
          break;
   }
-  rb_hash_aset(track->ios, io, INT2NUM(io_evt_data->fd));
+  rb_hash_aset(track->ios, io, INT2NUM(evt_data->fd));
 }
 
 static VALUE
