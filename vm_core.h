@@ -1569,9 +1569,13 @@ VALUE rb_catch_protect(VALUE t, rb_block_call_func *func, VALUE data, enum ruby_
 /* for thread */
 
 #if RUBY_VM_THREAD_MODEL == 2
-extern rb_thread_t *ruby_current_thread;
-extern rb_vm_t *ruby_current_vm;
-extern rb_event_flag_t ruby_vm_event_flags;
+RUBY_SYMBOL_EXPORT_BEGIN
+
+RUBY_EXTERN rb_thread_t *ruby_current_thread;
+RUBY_EXTERN rb_vm_t *ruby_current_vm;
+RUBY_EXTERN rb_event_flag_t ruby_vm_event_flags;
+
+RUBY_SYMBOL_EXPORT_END
 
 #define GET_VM() ruby_current_vm
 #define GET_THREAD() ruby_current_thread
@@ -1644,8 +1648,12 @@ struct rb_trace_arg_struct {
     VALUE path;
 };
 
-void rb_threadptr_exec_event_hooks(struct rb_trace_arg_struct *trace_arg);
-void rb_threadptr_exec_event_hooks_and_pop_frame(struct rb_trace_arg_struct *trace_arg);
+RUBY_SYMBOL_EXPORT_BEGIN
+
+RUBY_EXTERN void rb_threadptr_exec_event_hooks(struct rb_trace_arg_struct *trace_arg);
+RUBY_EXTERN void rb_threadptr_exec_event_hooks_and_pop_frame(struct rb_trace_arg_struct *trace_arg);
+
+RUBY_SYMBOL_EXPORT_END
 
 #define EXEC_EVENT_HOOK_ORIG(th_, flag_, self_, id_, called_id_, klass_, data_, pop_p_) do { \
     const rb_event_flag_t flag_arg_ = (flag_); \

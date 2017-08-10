@@ -2,6 +2,7 @@
 require 'test/unit'
 require '-test-/tracepoint'
 require 'tempfile'
+require 'socket'
 
 class TestTracepointObj < Test::Unit::TestCase
   def test_not_available_from_ruby
@@ -78,8 +79,8 @@ class TestTracepointObj < Test::Unit::TestCase
     end
   end
 
-  def test_tracks_io_events
-    result = IOHook.enable do
+  def test_tracks_file_io_events
+    result = IOHook.track_file_io do
       5.times do |i|
         Tempfile.create("io_events_test_#{i}") do |f|
           f.write(i.to_s)
@@ -90,5 +91,18 @@ class TestTracepointObj < Test::Unit::TestCase
     end
 
     assert_equal [5,10,5,5], result
+  end
+
+  def test_tracks_socket_io_events
+    result = IOHook.track_socket_io do
+      s = Socket.new(:INET, :STREAM)
+      s1, s2 = Socket.pair(:UNIX, :DGRAM, 0)
+      s1.send "a", 0
+      s1.send "b", 0
+      s2.recv(10)
+      s2.recv(10)
+    end
+
+    assert_equal [3], result
   end
 end

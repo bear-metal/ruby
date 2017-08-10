@@ -10,9 +10,6 @@
 
 #include "rubysocket.h"
 
-rb_thread_t *ruby_current_thread = 0;
-rb_event_flag_t ruby_vm_event_flags;
-
 static VALUE sym_wait_writable;
 
 static VALUE sock_s_unpack_sockaddr_in(VALUE, VALUE);
@@ -135,10 +132,9 @@ setup_domain_and_type(VALUE domain, int *dv, VALUE type, int *tv)
 static VALUE
 sock_initialize(int argc, VALUE *argv, VALUE sock)
 {
-    rb_event_io_data_t ev_data;
     VALUE domain, type, protocol;
     int d, t;
-    rb_thread_t *th = GET_THREAD();
+    RUBY_EVENT_IO_SETUP();
 
     rb_scan_args(argc, argv, "21", &domain, &type, &protocol);
     if (NIL_P(protocol))
@@ -289,13 +285,11 @@ rsock_socketpair(int domain, int type, int protocol, int sv[2])
 VALUE
 rsock_sock_s_socketpair(int argc, VALUE *argv, VALUE klass)
 {
-    rb_event_io_data_t ev_data;
-    memset(&ev_data, 0, sizeof(rb_event_io_data_t));
     VALUE domain, type, protocol;
     int d, t, p, sp[2];
     int ret;
     VALUE s1, s2, r;
-    rb_thread_t *th = GET_THREAD();
+    RUBY_EVENT_IO_SETUP();
 
     rb_scan_args(argc, argv, "21", &domain, &type, &protocol);
     if (NIL_P(protocol))
