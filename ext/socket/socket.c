@@ -439,6 +439,7 @@ sock_connect(VALUE sock, VALUE addr)
     VALUE rai;
     rb_io_t *fptr;
     int fd, n;
+    RUBY_EVENT_IO_SETUP();
 
     SockAddrStringValueWithAddrinfo(addr, rai);
     addr = rb_str_new4(addr);
@@ -448,6 +449,11 @@ sock_connect(VALUE sock, VALUE addr)
     if (n < 0) {
 	rsock_sys_fail_raddrinfo_or_sockaddr("connect(2)", addr, rai);
     }
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_CONNECT;
+    ev_data.fd = fptr->fd;
+    ev_data.socket.addr = SockAddrStringValuePtr(addr);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(n);
 }
@@ -459,6 +465,7 @@ sock_connect_nonblock(VALUE sock, VALUE addr, VALUE ex)
     VALUE rai;
     rb_io_t *fptr;
     int n;
+    RUBY_EVENT_IO_SETUP();
 
     SockAddrStringValueWithAddrinfo(addr, rai);
     addr = rb_str_new4(addr);
@@ -480,6 +487,11 @@ sock_connect_nonblock(VALUE sock, VALUE addr, VALUE ex)
 	}
 	rsock_syserr_fail_raddrinfo_or_sockaddr(e, "connect(2)", addr, rai);
     }
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_CONNECT;
+    ev_data.fd = fptr->fd;
+    ev_data.socket.addr = SockAddrStringValuePtr(addr);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(n);
 }
@@ -575,11 +587,17 @@ sock_bind(VALUE sock, VALUE addr)
 {
     VALUE rai;
     rb_io_t *fptr;
+    RUBY_EVENT_IO_SETUP();
 
     SockAddrStringValueWithAddrinfo(addr, rai);
     GetOpenFile(sock, fptr);
     if (bind(fptr->fd, (struct sockaddr*)RSTRING_PTR(addr), RSTRING_SOCKLEN(addr)) < 0)
 	rsock_sys_fail_raddrinfo_or_sockaddr("bind(2)", addr, rai);
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_BIND;
+    ev_data.fd = fptr->fd;
+    ev_data.socket.addr = SockAddrStringValuePtr(addr);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(0);
 }

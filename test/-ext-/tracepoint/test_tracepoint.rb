@@ -96,13 +96,17 @@ class TestTracepointObj < Test::Unit::TestCase
   def test_tracks_socket_io_events
     result = IOHook.track_socket_io do
       s = Socket.new(:INET, :STREAM)
-      s1, s2 = Socket.pair(:UNIX, :DGRAM, 0)
-      s1.send "a", 0
-      s1.send "b", 0
-      s2.recv(10)
-      s2.recv(10)
+      s1 = Socket.new(:INET, :STREAM)
+      s3, s4 = Socket.pair(:UNIX, :DGRAM, 0)
+      s3.send "a", 0
+      s4.send "b", 0
+      s3.recv(10)
+      s4.recv(10)
+      addr = Addrinfo.tcp("127.0.0.1", 2222)
+      s.bind(addr)
+      s1.connect_nonblock(addr)
     end
 
-    assert_equal [3], result
+    assert_equal [3, 1, 1], result
   end
 end

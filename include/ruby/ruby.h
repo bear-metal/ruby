@@ -2121,7 +2121,9 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_IO_READ    0x0004
 #define RUBY_EVENT_IO_WRITE   0x0008
 
-#define RUBY_EVENT_IO_SOCKET  0x0010
+#define RUBY_EVENT_IO_SOCKET          0x0010
+#define RUBY_EVENT_IO_SOCKET_CONNECT  0x0020
+#define RUBY_EVENT_IO_SOCKET_BIND     0x0040
 
 #define RUBY_EVENT_IO_SETUP() \
   rb_event_io_data_t ev_data; \
@@ -2147,6 +2149,7 @@ typedef struct rb_event_io_data_t {
         int domain;
         int type;
         int protocol;
+        const char *addr;
   	  } socket;
     };
 } rb_event_io_data_t;

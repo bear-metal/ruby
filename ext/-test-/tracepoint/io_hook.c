@@ -11,6 +11,8 @@ struct io_events_track {
 
 struct socket_events_track {
     size_t sockets_count;
+    size_t bind_count;
+    size_t connect_count;
     VALUE ios;
 };
 
@@ -25,19 +27,19 @@ rb_io_events_i(VALUE tpval, void *data)
   switch(evt_data->flag){
     case RUBY_EVENT_IO_OPEN:
          track->open_count++;
-				 printf("RUBY_EVENT_IO_OPEN name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
+         printf("RUBY_EVENT_IO_OPEN name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
          break;
     case RUBY_EVENT_IO_READ:
          track->read_count++;
-				 printf("RUBY_EVENT_IO_READ name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
+         printf("RUBY_EVENT_IO_READ name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
          break;
     case RUBY_EVENT_IO_WRITE:
          track->write_count++;
-				 printf("RUBY_EVENT_IO_WRITE name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
+         printf("RUBY_EVENT_IO_WRITE name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
          break;
     case RUBY_EVENT_IO_CLOSE:
          track->close_count++;
-				 printf("RUBY_EVENT_IO_CLOSE name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
+         printf("RUBY_EVENT_IO_CLOSE name: %s mode: %d xfer: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->bytes_transferred, evt_data->fd);
          break;
   }
   rb_hash_aset(track->ios, io, INT2NUM(evt_data->fd));
@@ -54,8 +56,16 @@ rb_socket_events_i(VALUE tpval, void *data)
   switch(evt_data->flag){
     case RUBY_EVENT_IO_SOCKET:
          track->sockets_count++;
-				 printf("RUBY_EVENT_IO_SOCKET domain: %d type: %d protocol: %d xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->bytes_transferred, evt_data->fd);
+         printf("RUBY_EVENT_IO_SOCKET domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
          break;
+    case RUBY_EVENT_IO_SOCKET_BIND:
+         track->bind_count++;
+         printf("RUBY_EVENT_IO_SOCKET_BIND domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
+         break;
+     case RUBY_EVENT_IO_SOCKET_CONNECT:
+          track->connect_count++;
+          printf("RUBY_EVENT_IO_SOCKET_CONNECT domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
+          break;
   }
   rb_hash_aset(track->ios, io, INT2NUM(evt_data->fd));
 }
@@ -81,7 +91,7 @@ rb_track_file_io(VALUE self)
 static VALUE
 rb_track_socket_io(VALUE self)
 {
-    struct socket_events_track track = {0, rb_hash_new()};
+    struct socket_events_track track = {0, 0, 0, rb_hash_new()};
     VALUE tpval = rb_tracepoint_new(0, RUBY_EVENT_IO, rb_socket_events_i, &track);
     VALUE result = rb_ary_new();
 
@@ -89,6 +99,8 @@ rb_track_socket_io(VALUE self)
     rb_ensure(rb_yield, Qundef, rb_tracepoint_disable, tpval);
 
     rb_ary_push(result, SIZET2NUM(track.sockets_count));
+    rb_ary_push(result, SIZET2NUM(track.bind_count));
+    rb_ary_push(result, SIZET2NUM(track.connect_count));
 
     return result;
 }
