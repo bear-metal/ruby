@@ -12,7 +12,12 @@ struct io_events_track {
 struct socket_events_track {
     size_t sockets_count;
     size_t bind_count;
+    size_t listen_count;
     size_t connect_count;
+    size_t accept_count;
+    size_t option_count;
+    size_t shutdown_count;
+    size_t gethostbyname_count;
     VALUE ios;
 };
 
@@ -62,10 +67,31 @@ rb_socket_events_i(VALUE tpval, void *data)
          track->bind_count++;
          printf("RUBY_EVENT_IO_SOCKET_BIND domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
          break;
-     case RUBY_EVENT_IO_SOCKET_CONNECT:
-          track->connect_count++;
-          printf("RUBY_EVENT_IO_SOCKET_CONNECT domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
-          break;
+    case RUBY_EVENT_IO_SOCKET_LISTEN:
+         track->listen_count++;
+         printf("RUBY_EVENT_IO_SOCKET_LISTEN domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
+         break;
+    case RUBY_EVENT_IO_SOCKET_CONNECT:
+         track->connect_count++;
+         printf("RUBY_EVENT_IO_SOCKET_CONNECT domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
+         break;
+    case RUBY_EVENT_IO_SOCKET_ACCEPT:
+         track->accept_count++;
+         printf("RUBY_EVENT_IO_SOCKET_ACCEPT domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
+         break;
+    case RUBY_EVENT_IO_SOCKET_OPTION:
+         track->option_count++;
+         printf("RUBY_EVENT_IO_SOCKET_OPTION domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
+         break;
+    case RUBY_EVENT_IO_SOCKET_SHUTDOWN:
+         track->shutdown_count++;
+         printf("RUBY_EVENT_IO_SOCKET_SHUTDOWN domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
+         break;
+    case RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME:
+         track->gethostbyname_count++;
+         printf("RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME domain: %d type: %d protocol: %d addr: %s xfer: %zd fd: %d\n", evt_data->socket.domain, evt_data->socket.type, evt_data->socket.protocol, evt_data->socket.addr, evt_data->bytes_transferred, evt_data->fd);
+         break;
+
   }
   rb_hash_aset(track->ios, io, INT2NUM(evt_data->fd));
 }
@@ -91,7 +117,7 @@ rb_track_file_io(VALUE self)
 static VALUE
 rb_track_socket_io(VALUE self)
 {
-    struct socket_events_track track = {0, 0, 0, rb_hash_new()};
+    struct socket_events_track track = {0, 0, 0, 0, 0, 0, 0, 0, rb_hash_new()};
     VALUE tpval = rb_tracepoint_new(0, RUBY_EVENT_IO, rb_socket_events_i, &track);
     VALUE result = rb_ary_new();
 
@@ -100,7 +126,12 @@ rb_track_socket_io(VALUE self)
 
     rb_ary_push(result, SIZET2NUM(track.sockets_count));
     rb_ary_push(result, SIZET2NUM(track.bind_count));
+    rb_ary_push(result, SIZET2NUM(track.listen_count));
     rb_ary_push(result, SIZET2NUM(track.connect_count));
+    rb_ary_push(result, SIZET2NUM(track.accept_count));
+    rb_ary_push(result, SIZET2NUM(track.option_count));
+    rb_ary_push(result, SIZET2NUM(track.shutdown_count));
+    rb_ary_push(result, SIZET2NUM(track.gethostbyname_count));
 
     return result;
 }

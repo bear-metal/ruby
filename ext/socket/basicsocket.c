@@ -62,6 +62,7 @@ bsock_s_for_fd(VALUE klass, VALUE fd)
 static VALUE
 bsock_shutdown(int argc, VALUE *argv, VALUE sock)
 {
+    RUBY_EVENT_IO_SETUP();
     VALUE howto;
     int how;
     rb_io_t *fptr;
@@ -78,6 +79,10 @@ bsock_shutdown(int argc, VALUE *argv, VALUE sock)
     GetOpenFile(sock, fptr);
     if (shutdown(fptr->fd, how) == -1)
 	rb_sys_fail("shutdown(2)");
+
+	  ev_data.flag = RUBY_EVENT_IO_SOCKET_SHUTDOWN;
+	  ev_data.fd = fptr->fd;
+	  EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(0);
 }

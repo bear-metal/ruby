@@ -104,9 +104,13 @@ class TestTracepointObj < Test::Unit::TestCase
       s4.recv(10)
       addr = Addrinfo.tcp("127.0.0.1", 2222)
       s.bind(addr)
-      s1.connect_nonblock(addr)
+      serv = Socket.new(:INET, :STREAM, 0)
+      serv.bind(Socket.sockaddr_in(0, "127.0.0.1"))
+      serv.listen(5)
+      c = Socket.new(:INET, :STREAM, 0)
+      c.connect(serv.local_address)
     end
 
-    assert_equal [3, 1, 1], result
+    assert_equal [6, 2, 1, 1, 0, 0, 0], result
   end
 end

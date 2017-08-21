@@ -675,6 +675,7 @@ sock_bind(VALUE sock, VALUE addr)
 VALUE
 rsock_sock_listen(VALUE sock, VALUE log)
 {
+    RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr;
     int backlog;
 
@@ -682,6 +683,10 @@ rsock_sock_listen(VALUE sock, VALUE log)
     GetOpenFile(sock, fptr);
     if (listen(fptr->fd, backlog) < 0)
 	rb_sys_fail("listen(2)");
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_LISTEN;
+    ev_data.fd = fptr->fd;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(0);
 }
@@ -821,6 +826,7 @@ sock_recvfrom_nonblock(VALUE sock, VALUE len, VALUE flg, VALUE str, VALUE ex)
 static VALUE
 sock_accept(VALUE sock)
 {
+    RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr;
     VALUE sock2;
     union_sockaddr buf;
@@ -829,6 +835,10 @@ sock_accept(VALUE sock)
     GetOpenFile(sock, fptr);
     sock2 = rsock_s_accept(rb_cSocket,fptr->fd,&buf.addr,&len);
 
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_ACCEPT;
+    ev_data.fd = fptr->fd;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
+
     return rb_assoc_new(sock2, rsock_io_socket_addrinfo(sock2, &buf.addr, len));
 }
 
@@ -836,6 +846,7 @@ sock_accept(VALUE sock)
 static VALUE
 sock_accept_nonblock(VALUE sock, VALUE ex)
 {
+    RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr;
     VALUE sock2;
     union_sockaddr buf;
@@ -847,6 +858,11 @@ sock_accept_nonblock(VALUE sock, VALUE ex)
 
     if (SYMBOL_P(sock2)) /* :wait_readable */
 	return sock2;
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_ACCEPT;
+    ev_data.fd = fptr->fd;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
+
     return rb_assoc_new(sock2, rsock_io_socket_addrinfo(sock2, &buf.addr, len));
 }
 
@@ -891,6 +907,7 @@ sock_accept_nonblock(VALUE sock, VALUE ex)
 static VALUE
 sock_sysaccept(VALUE sock)
 {
+    RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr;
     VALUE sock2;
     union_sockaddr buf;
@@ -898,6 +915,10 @@ sock_sysaccept(VALUE sock)
 
     GetOpenFile(sock, fptr);
     sock2 = rsock_s_accept(0,fptr->fd,&buf.addr,&len);
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_ACCEPT;
+    ev_data.fd = fptr->fd;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return rb_assoc_new(sock2, rsock_io_socket_addrinfo(sock2, &buf.addr, len));
 }
@@ -1023,9 +1044,19 @@ sock_sockaddr(struct sockaddr *addr, socklen_t len)
 static VALUE
 sock_s_gethostbyname(VALUE obj, VALUE host)
 {
+    RUBY_EVENT_IO_SETUP();
+    VALUE info;
     struct rb_addrinfo *res =
 	rsock_addrinfo(host, Qnil, AF_UNSPEC, SOCK_STREAM, AI_CANONNAME);
-    return rsock_make_hostent(host, res, sock_sockaddr);
+    info = rsock_make_hostent(host, res, sock_sockaddr);
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME;
+    ev_data.socket.type = res->ai->ai_socktype;
+    ev_data.socket.protocol = res->ai->ai_protocol;
+    ev_data.socket.addr = StringValueCString(res->ai->ai_canonname);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, obj, 0, 0, 0, (VALUE)&ev_data);
+
+    return info;
 }
 
 /*
@@ -1040,6 +1071,7 @@ sock_s_gethostbyname(VALUE obj, VALUE host)
 static VALUE
 sock_s_gethostbyaddr(int argc, VALUE *argv)
 {
+    RUBY_EVENT_IO_SETUP();
     VALUE addr, family;
     struct hostent *h;
     char **pch;
@@ -1102,6 +1134,7 @@ sock_s_gethostbyaddr(int argc, VALUE *argv)
 static VALUE
 sock_s_getservbyname(int argc, VALUE *argv)
 {
+    RUBY_EVENT_IO_SETUP();
     VALUE service, proto;
     struct servent *sp;
     long port;
@@ -1143,6 +1176,7 @@ sock_s_getservbyname(int argc, VALUE *argv)
 static VALUE
 sock_s_getservbyport(int argc, VALUE *argv)
 {
+    RUBY_EVENT_IO_SETUP();
     VALUE port, proto;
     struct servent *sp;
     long portnum;
