@@ -452,6 +452,7 @@ sock_connect(VALUE sock, VALUE addr)
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_CONNECT;
     ev_data.fd = fptr->fd;
+    ev_data.ret = n;
     ev_data.socket.addr = SockAddrStringValuePtr(addr);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
@@ -472,6 +473,14 @@ sock_connect_nonblock(VALUE sock, VALUE addr, VALUE ex)
     GetOpenFile(sock, fptr);
     rb_io_set_nonblock(fptr);
     n = connect(fptr->fd, (struct sockaddr*)RSTRING_PTR(addr), RSTRING_SOCKLEN(addr));
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_CONNECT;
+    ev_data.fd = fptr->fd;
+    ev_data.ret = n;
+    ev_data.socket.addr = SockAddrStringValuePtr(addr);
+
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
+
     if (n < 0) {
 	int e = errno;
 	if (e == EINPROGRESS) {
@@ -487,11 +496,6 @@ sock_connect_nonblock(VALUE sock, VALUE addr, VALUE ex)
 	}
 	rsock_syserr_fail_raddrinfo_or_sockaddr(e, "connect(2)", addr, rai);
     }
-
-    ev_data.flag = RUBY_EVENT_IO_SOCKET_CONNECT;
-    ev_data.fd = fptr->fd;
-    ev_data.socket.addr = SockAddrStringValuePtr(addr);
-    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(n);
 }
@@ -596,6 +600,7 @@ sock_bind(VALUE sock, VALUE addr)
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_BIND;
     ev_data.fd = fptr->fd;
+    ev_data.ret = 0;
     ev_data.socket.addr = SockAddrStringValuePtr(addr);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
@@ -686,6 +691,7 @@ rsock_sock_listen(VALUE sock, VALUE log)
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_LISTEN;
     ev_data.fd = fptr->fd;
+    ev_data.ret = 0;
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(0);
@@ -1114,6 +1120,10 @@ sock_s_gethostbyaddr(int argc, VALUE *argv)
 #else
     rb_ary_push(ary, rb_str_new(h->h_addr, h->h_length));
 #endif
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTBYADDR;
+    ev_data.socket.addr = RSTRING_PTR(addr);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
 
     return ary;
 }

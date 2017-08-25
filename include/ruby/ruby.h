@@ -2126,9 +2126,9 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_IO_SOCKET_CONNECT    0x0040
 #define RUBY_EVENT_IO_SOCKET_LISTEN     0x0080
 #define RUBY_EVENT_IO_SOCKET_ACCEPT     0x0100
-#define RUBY_EVENT_IO_SOCKET_OPTION     0x0200
-#define RUBY_EVENT_IO_SOCKET_SHUTDOWN   0x0400
-#define RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME 0x0800
+#define RUBY_EVENT_IO_SOCKET_SHUTDOWN   0x0200
+#define RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME 0x0400
+#define RUBY_EVENT_IO_SOCKET_GETHOSTBYADDR 0x0800
 
 #define RUBY_EVENT_IO_SETUP() \
   rb_event_io_data_t ev_data; \
@@ -2140,9 +2140,8 @@ typedef uint32_t rb_event_io_flag_t;
 typedef struct rb_event_io_data_t {
     rb_event_io_flag_t flag;
     int fd;
+    ssize_t ret;
     size_t capa;
-    ssize_t bytes_transferred;
-    int result;
     union {
       struct {
         const char *name;

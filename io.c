@@ -978,9 +978,9 @@ rb_read_internal(int fd, void *buf, size_t count)
     ev_data.flag = RUBY_EVENT_IO_READ;
     ev_data.fd = fd;
     ev_data.capa = count;
-    ev_data.bytes_transferred = (ssize_t)rb_thread_io_blocking_region(internal_read_func, &iis, fd);
+    ev_data.ret = (ssize_t)rb_thread_io_blocking_region(internal_read_func, &iis, fd);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
-    return ev_data.bytes_transferred;
+    return ev_data.ret;
 }
 
 static ssize_t
@@ -995,9 +995,9 @@ rb_write_internal(int fd, const void *buf, size_t count)
     ev_data.flag = RUBY_EVENT_IO_WRITE;
     ev_data.fd = fd;
     ev_data.capa = count;
-    ev_data.bytes_transferred = (ssize_t)rb_thread_io_blocking_region(internal_write_func, &iis, fd);
+    ev_data.ret = (ssize_t)rb_thread_io_blocking_region(internal_write_func, &iis, fd);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
-    return ev_data.bytes_transferred;
+    return ev_data.ret;
 }
 
 static ssize_t
@@ -1012,10 +1012,10 @@ rb_write_internal2(int fd, const void *buf, size_t count)
     ev_data.flag = RUBY_EVENT_IO_WRITE;
     ev_data.fd = fd;
     ev_data.capa = count;
-    ev_data.bytes_transferred = (ssize_t)rb_thread_call_without_gvl2(internal_write_func2, &iis,
+    ev_data.ret = (ssize_t)rb_thread_call_without_gvl2(internal_write_func2, &iis,
 						RUBY_UBF_IO, NULL);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
-    return ev_data.bytes_transferred;
+    return ev_data.ret;
 }
 
 #ifdef HAVE_WRITEV
@@ -1041,18 +1041,18 @@ io_flush_buffer_sync(void *arg)
     ev_data.fd = fptr->fd;
     ev_data.capa = l;
     //ev_data.file.name = StringValueCStr(fptr->pathv);
-    ev_data.bytes_transferred = write(fptr->fd, fptr->wbuf.ptr+fptr->wbuf.off, (size_t)l);
+    ev_data.ret = write(fptr->fd, fptr->wbuf.ptr+fptr->wbuf.off, (size_t)l);
 
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
 
-    if (fptr->wbuf.len <= ev_data.bytes_transferred) {
+    if (fptr->wbuf.len <= ev_data.ret) {
 	fptr->wbuf.off = 0;
 	fptr->wbuf.len = 0;
 	return 0;
     }
-    if (0 <= ev_data.bytes_transferred) {
-	fptr->wbuf.off += (int)ev_data.bytes_transferred;
-	fptr->wbuf.len -= (int)ev_data.bytes_transferred;
+    if (0 <= ev_data.ret) {
+	fptr->wbuf.off += (int)ev_data.ret;
+	fptr->wbuf.len -= (int)ev_data.ret;
 	errno = EAGAIN;
     }
     return (VALUE)-1;
@@ -4294,17 +4294,17 @@ maygvl_close(int fd, int keepgvl)
     ev_data.flag = RUBY_EVENT_IO_CLOSE;
     ev_data.fd = fd;
     if (keepgvl) {
-      ev_data.result = close(fd);
+      ev_data.ret = close(fd);
       EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
-      return ev_data.result;
+      return (int)ev_data.ret;
     }
     /*
      * close() may block for certain file types (NFS, SO_LINGER sockets,
      * inotify), so let other threads run.
      */
-    ev_data.result = (int)(intptr_t)rb_thread_call_without_gvl(nogvl_close, &fd, RUBY_UBF_IO, 0);
+    ev_data.ret = (int)(intptr_t)rb_thread_call_without_gvl(nogvl_close, &fd, RUBY_UBF_IO, 0);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
-    return ev_data.result;
+    return (int)ev_data.ret;
 }
 
 static void*
@@ -4321,14 +4321,14 @@ maygvl_fclose(FILE *file, int keepgvl)
     ev_data.flag = RUBY_EVENT_IO_CLOSE;
     ev_data.fd = file->_file;
     if (keepgvl) {
-      ev_data.result = fclose(file);
+      ev_data.ret = fclose(file);
       EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
-      return ev_data.result;
+      return (int)ev_data.ret;
     }
 
-    ev_data.result = (int)(intptr_t)rb_thread_call_without_gvl(nogvl_fclose, file, RUBY_UBF_IO, 0);
+    ev_data.ret = (intptr_t)rb_thread_call_without_gvl(nogvl_fclose, file, RUBY_UBF_IO, 0);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
-    return ev_data.result;
+    return (int)ev_data.ret;
 }
 
 static void free_io_buffer(rb_io_buffer_t *buf);

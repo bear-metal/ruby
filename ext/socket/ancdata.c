@@ -1448,7 +1448,6 @@ bsock_recvmsg_internal(VALUE sock,
 		VALUE vmaxdatlen, VALUE vflags, VALUE vmaxctllen,
 		VALUE scm_rights, VALUE ex, int nonblock)
 {
-    RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr;
     int grow_buffer;
     size_t maxdatlen;
@@ -1506,9 +1505,6 @@ bsock_recvmsg_internal(VALUE sock,
         if (getsockopt(fptr->fd, SOL_SOCKET, SO_TYPE, (void*)&socktype, &optlen) == -1) {
 	    rb_sys_fail("getsockopt(SO_TYPE)");
 	}
-  ev_data.flag = RUBY_EVENT_IO_SOCKET_OPTION;
-  ev_data.fd = fptr->fd;
-  EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 	
 	if (socktype == SOCK_STREAM)
 	    grow_buffer = 0;
