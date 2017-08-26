@@ -1059,7 +1059,7 @@ sock_s_gethostbyname(VALUE obj, VALUE host)
     ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME;
     ev_data.socket.type = res->ai->ai_socktype;
     ev_data.socket.protocol = res->ai->ai_protocol;
-    ev_data.socket.addr = StringValueCString(res->ai->ai_canonname);
+    ev_data.socket.addr = StringValueCStr(res->ai->ai_canonname);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, obj, 0, 0, 0, (VALUE)&ev_data);
 
     return info;
