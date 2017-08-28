@@ -944,6 +944,7 @@ sock_sysaccept(VALUE sock)
 static VALUE
 sock_gethostname(VALUE obj)
 {
+  RUBY_EVENT_IO_SETUP();
 #if defined(NI_MAXHOST)
 #  define RUBY_MAX_HOST_NAME_LEN NI_MAXHOST
 #elif defined(HOST_NAME_MAX)
@@ -971,7 +972,13 @@ sock_gethostname(VALUE obj)
 	rb_str_modify_expand(name, len);
 	len += len;
     }
+
     rb_str_resize(name, strlen(RSTRING_PTR(name)));
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTNAME;
+    ev_data.socket.addr = StringValueCStr(name);
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, obj, 0, 0, 0, (VALUE)&ev_data);
+
     return name;
 }
 #else
@@ -1050,20 +1057,10 @@ sock_sockaddr(struct sockaddr *addr, socklen_t len)
 static VALUE
 sock_s_gethostbyname(VALUE obj, VALUE host)
 {
-    RUBY_EVENT_IO_SETUP();
-    VALUE info;
     struct rb_addrinfo *res =
 	rsock_addrinfo(host, Qnil, AF_UNSPEC, SOCK_STREAM, AI_CANONNAME);
-    info = rsock_make_hostent(host, res, sock_sockaddr);
-
-    ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME;
-    ev_data.socket.type = res->ai->ai_socktype;
-    ev_data.socket.protocol = res->ai->ai_protocol;
-    ev_data.socket.addr = StringValueCStr(res->ai->ai_canonname);
-    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, obj, 0, 0, 0, (VALUE)&ev_data);
-
-    return info;
-}
+    return rsock_make_hostent(host, res, sock_sockaddr);
+	}
 
 /*
  * call-seq:
@@ -1122,7 +1119,7 @@ sock_s_gethostbyaddr(int argc, VALUE *argv)
 #endif
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTBYADDR;
-    ev_data.socket.addr = RSTRING_PTR(addr);
+    ev_data.socket.addr = StringValueCStr(addr);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
 
     return ary;

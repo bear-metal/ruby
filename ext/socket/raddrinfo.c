@@ -651,6 +651,7 @@ struct hostent_arg {
 static VALUE
 make_hostent_internal(struct hostent_arg *arg)
 {
+    RUBY_EVENT_IO_SETUP();
     VALUE host = arg->host;
     struct addrinfo* addr = arg->addr->ai;
     VALUE (*ipaddr)(struct sockaddr*, socklen_t) = arg->ipaddr;
@@ -688,6 +689,13 @@ make_hostent_internal(struct hostent_arg *arg)
     for (ai = addr; ai; ai = ai->ai_next) {
         rb_ary_push(ary, (*ipaddr)(ai->ai_addr, ai->ai_addrlen));
     }
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME;
+    //ev_data.socket.type = ai->ai_socktype;
+    //ev_data.socket.protocol = ai->ai_protocol;
+    ev_data.socket.addr = StringValueCStr(host);
+
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
 
     return ary;
 }

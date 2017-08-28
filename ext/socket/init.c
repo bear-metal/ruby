@@ -145,6 +145,7 @@ recvfrom_locktmp(VALUE v)
 VALUE
 rsock_s_recvfrom(VALUE sock, int argc, VALUE *argv, enum sock_recv_type from)
 {
+    RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr;
     VALUE str;
     struct recvfrom_arg arg;
@@ -163,6 +164,10 @@ rsock_s_recvfrom(VALUE sock, int argc, VALUE *argv, enum sock_recv_type from)
     if (rb_io_read_pending(fptr)) {
 	rb_raise(rb_eIOError, "recv for buffered IO");
     }
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTNAME;
+    ev_data.fd = fptr->fd;
+
     arg.fd = fptr->fd;
     arg.alen = (socklen_t)sizeof(arg.buf);
     arg.str = str;
@@ -182,6 +187,7 @@ rsock_s_recvfrom(VALUE sock, int argc, VALUE *argv, enum sock_recv_type from)
     rb_obj_taint(str);
     switch (from) {
       case RECV_RECV:
+	EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 	return str;
       case RECV_IP:
 #if 0
@@ -189,16 +195,21 @@ rsock_s_recvfrom(VALUE sock, int argc, VALUE *argv, enum sock_recv_type from)
 	    rb_raise(rb_eTypeError, "sockaddr size differs - should not happen");
 	}
 #endif
-	if (arg.alen && arg.alen != sizeof(arg.buf)) /* OSX doesn't return a from result for connection-oriented sockets */
+	if (arg.alen && arg.alen != sizeof(arg.buf)) /* OSX doesn't return a from result for connection-oriented sockets */ {
+      EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 	    return rb_assoc_new(str, rsock_ipaddr(&arg.buf.addr, arg.alen, fptr->mode & FMODE_NOREVLOOKUP));
-	else
+	} else {
+      EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 	    return rb_assoc_new(str, Qnil);
+	}
 
 #ifdef HAVE_SYS_UN_H
       case RECV_UNIX:
+        EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
         return rb_assoc_new(str, rsock_unixaddr(&arg.buf.un, arg.alen));
 #endif
       case RECV_SOCKET:
+        EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 	return rb_assoc_new(str, rsock_io_socket_addrinfo(sock, &arg.buf.addr, arg.alen));
       default:
 	rb_bug("rsock_s_recvfrom called with bad value");
@@ -209,6 +220,7 @@ VALUE
 rsock_s_recvfrom_nonblock(VALUE sock, VALUE len, VALUE flg, VALUE str,
 			  VALUE ex, enum sock_recv_type from)
 {
+    RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr;
     union_sockaddr buf;
     socklen_t alen = (socklen_t)sizeof buf;
@@ -234,6 +246,9 @@ rsock_s_recvfrom_nonblock(VALUE sock, VALUE len, VALUE flg, VALUE str,
     }
     fd = fptr->fd;
 
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTNAME;
+    ev_data.fd = fd;
+
     rb_io_check_closed(fptr);
 
     if (!MSG_DONTWAIT_RELIABLE)
@@ -251,8 +266,10 @@ rsock_s_recvfrom_nonblock(VALUE sock, VALUE len, VALUE flg, VALUE str,
 #if defined(EWOULDBLOCK) && EWOULDBLOCK != EAGAIN
 	  case EWOULDBLOCK:
 #endif
-            if (ex == Qfalse)
+            if (ex == Qfalse) {
+		EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 		return sym_wait_readable;
+	          }
             rb_readwrite_syserr_fail(RB_IO_WAIT_READABLE, e, "recvfrom(2) would block");
 	}
 	rb_syserr_fail(e, "recvfrom(2)");
@@ -263,6 +280,7 @@ rsock_s_recvfrom_nonblock(VALUE sock, VALUE len, VALUE flg, VALUE str,
     rb_obj_taint(str);
     switch (from) {
       case RECV_RECV:
+        EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
         return str;
 
       case RECV_IP:
@@ -277,6 +295,8 @@ rsock_s_recvfrom_nonblock(VALUE sock, VALUE len, VALUE flg, VALUE str,
       default:
         rb_bug("rsock_s_recvfrom_nonblock called with bad value");
     }
+
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
     return rb_assoc_new(str, addr);
 }
 

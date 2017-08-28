@@ -31,19 +31,19 @@ rb_io_events_i(VALUE tpval, void *data)
   switch(evt_data->flag){
     case RUBY_EVENT_IO_OPEN:
          track->open_count++;
-         printf("RUBY_EVENT_IO_OPEN name: %s mode: %d ret: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->ret, evt_data->fd);
+         printf("RUBY_EVENT_IO_OPEN path: %s mode: %d flags: %d, ret: %zd\n", evt_data->open.path, evt_data->open.flags, evt_data->open.mode, evt_data->open.ret);
          break;
     case RUBY_EVENT_IO_READ:
          track->read_count++;
-         printf("RUBY_EVENT_IO_READ name: %s mode: %d ret: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->ret, evt_data->fd);
+         printf("RUBY_EVENT_IO_READ fd: %d capa: %zd ret: %zd\n", evt_data->read.fd, evt_data->read.capa, evt_data->read.ret);
          break;
     case RUBY_EVENT_IO_WRITE:
          track->write_count++;
-         printf("RUBY_EVENT_IO_WRITE name: %s mode: %d ret: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->ret, evt_data->fd);
+         printf("RUBY_EVENT_IO_WRITE fd: %d capa: %zd ret: %zd\n", evt_data->read.fd, evt_data->read.capa, evt_data->read.ret);
          break;
     case RUBY_EVENT_IO_CLOSE:
          track->close_count++;
-         printf("RUBY_EVENT_IO_CLOSE name: %s mode: %d ret: %zd fd: %d\n", evt_data->file.name, evt_data->file.mode, evt_data->ret, evt_data->fd);
+         printf("RUBY_EVENT_IO_CLOSE fd: %d ret: %d\n", evt_data->close.fd, evt_data->close.ret);
          break;
   }
   rb_hash_aset(track->ios, io, INT2NUM(evt_data->fd));

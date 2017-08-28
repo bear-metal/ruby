@@ -532,6 +532,7 @@ bsock_remote_address(VALUE sock)
 VALUE
 rsock_bsock_send(int argc, VALUE *argv, VALUE sock)
 {
+    RUBY_EVENT_IO_SETUP();
     struct rsock_send_arg arg;
     VALUE flags, to;
     rb_io_t *fptr;
@@ -547,16 +548,21 @@ rsock_bsock_send(int argc, VALUE *argv, VALUE sock)
 	to = rb_str_new4(to);
 	arg.to = (struct sockaddr *)RSTRING_PTR(to);
 	arg.tolen = RSTRING_SOCKLEN(to);
+	 ev_data.flag = RUBY_EVENT_IO_SOCKET_SENDTO;
 	func = rsock_sendto_blocking;
 	funcname = "sendto(2)";
     }
     else {
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_SEND;
 	func = rsock_send_blocking;
 	funcname = "send(2)";
     }
     GetOpenFile(sock, fptr);
     arg.fd = fptr->fd;
     arg.flags = NUM2INT(flags);
+
+    ev_data.fd = fptr->fd;
+
     while (rsock_maybe_fd_writable(arg.fd),
 	   (n = (ssize_t)BLOCKING_REGION_FD(func, &arg)) < 0) {
 	if (rb_io_wait_writable(arg.fd)) {
@@ -564,6 +570,8 @@ rsock_bsock_send(int argc, VALUE *argv, VALUE sock)
 	}
 	rb_sys_fail(funcname);
     }
+
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
     return SSIZET2NUM(n);
 }
 

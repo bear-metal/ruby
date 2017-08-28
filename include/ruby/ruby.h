@@ -2121,14 +2121,18 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_IO_READ    0x0004
 #define RUBY_EVENT_IO_WRITE   0x0008
 
-#define RUBY_EVENT_IO_SOCKET            0x0010
-#define RUBY_EVENT_IO_SOCKET_BIND       0x0020
-#define RUBY_EVENT_IO_SOCKET_CONNECT    0x0040
-#define RUBY_EVENT_IO_SOCKET_LISTEN     0x0080
-#define RUBY_EVENT_IO_SOCKET_ACCEPT     0x0100
-#define RUBY_EVENT_IO_SOCKET_SHUTDOWN   0x0200
+#define RUBY_EVENT_IO_SOCKET               0x0010
+#define RUBY_EVENT_IO_SOCKET_BIND          0x0020
+#define RUBY_EVENT_IO_SOCKET_CONNECT       0x0040
+#define RUBY_EVENT_IO_SOCKET_LISTEN        0x0080
+#define RUBY_EVENT_IO_SOCKET_ACCEPT        0x0100
+#define RUBY_EVENT_IO_SOCKET_SHUTDOWN      0x0200
 #define RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME 0x0400
 #define RUBY_EVENT_IO_SOCKET_GETHOSTBYADDR 0x0800
+#define RUBY_EVENT_IO_SOCKET_GETHOSTNAME   0x1000
+#define RUBY_EVENT_IO_SOCKET_RECVFROM      0x2000
+#define RUBY_EVENT_IO_SOCKET_SEND          0x4000
+#define RUBY_EVENT_IO_SOCKET_SENDTO        0x8000
 
 #define RUBY_EVENT_IO_SETUP() \
   rb_event_io_data_t ev_data; \
@@ -2147,14 +2151,32 @@ typedef struct rb_event_io_data_t {
         const char *name;
         int mode;
       } file;
-    };
-    union {
       struct {
         int domain;
         int type;
         int protocol;
         const char *addr;
-  	  } socket;
+      } socket;
+		  struct {
+				const char *path;
+				int flags;
+				int mode;
+				int ret;
+			} open;
+		  struct {
+				int fd;
+				int ret;
+			} close;
+		  struct {
+				int fd;
+				size_t capa;
+				ssize_t ret;
+			} read;
+		  struct {
+				int fd;
+				size_t capa;
+				ssize_t ret;
+			} write;
     };
 } rb_event_io_data_t;
 
@@ -2164,37 +2186,6 @@ typedef void (*rb_event_hook_func_t)(rb_event_flag_t evflag, VALUE data, VALUE s
 #define RB_EVENT_HOOKS_HAVE_CALLBACK_DATA 1
 void rb_add_event_hook(rb_event_hook_func_t func, rb_event_flag_t events, VALUE data);
 int rb_remove_event_hook(rb_event_hook_func_t func);
-
-/* event callback struct definitions */
-struct event_io_open_data {
-    int fd;
-    char *filename;
-    int mode;
-};
-
-struct event_io_read_data {
-    int fd;
-    size_t capa;
-    ssize_t bytes_read;
-};
-
-struct event_io_write_data {
-    int fd;
-    size_t capa;
-    ssize_t bytes_written;
-};
-
-struct event_io_close_data {
-    int fd;
-    int result;
-};
-
-struct event_socket_new_data {
-    int fd;
-    int domain;
-    int type;
-    int protocol;
-};
 
 /* locale insensitive functions */
 
