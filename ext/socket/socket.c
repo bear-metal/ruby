@@ -147,6 +147,7 @@ sock_initialize(int argc, VALUE *argv, VALUE sock)
     ev_data.socket.domain = d;
     ev_data.socket.type = t;
     ev_data.socket.protocol = FIX2INT(protocol);
+    ev_data.socket.ret = ev_data.fd;
     sock = rsock_init_sock(sock, ev_data.fd);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
     return sock;
@@ -297,20 +298,20 @@ rsock_sock_s_socketpair(int argc, VALUE *argv, VALUE klass)
 
     setup_domain_and_type(domain, &d, type, &t);
     p = NUM2INT(protocol);
-    ev_data.flag = RUBY_EVENT_IO_SOCKET;
-    ev_data.socket.domain = d;
-    ev_data.socket.type = t;
-    ev_data.socket.protocol = p;
+    ev_data.flag = RUBY_EVENT_IO_SOCKETPAIR;
+    ev_data.socketpair.domain = d;
+    ev_data.socketpair.type = t;
+    ev_data.socketpair.protocol = p;
     ret = rsock_socketpair(d, t, p, sp);
     if (ret < 0) {
 	rb_sys_fail("socketpair(2)");
     }
 
     s1 = rsock_init_sock(rb_obj_alloc(klass), sp[0]);
-    ev_data.fd = sp[0];
+    ev_data.socketpair.fds[0] = sp[0];
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, s1, 0, 0, 0, (VALUE)&ev_data);
     s2 = rsock_init_sock(rb_obj_alloc(klass), sp[1]);
-    ev_data.fd = sp[1];
+    ev_data.socketpair.fds[1] = sp[1];
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, s2, 0, 0, 0, (VALUE)&ev_data);
     r = rb_assoc_new(s1, s2);
     if (rb_block_given_p()) {
@@ -451,9 +452,9 @@ sock_connect(VALUE sock, VALUE addr)
     }
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_CONNECT;
-    ev_data.fd = fptr->fd;
-    ev_data.ret = n;
-    ev_data.socket.addr = SockAddrStringValuePtr(addr);
+    ev_data.connect.fd = fd;
+    //ev_data.connect.addr = SockAddrStringValuePtr(addr);
+    ev_data.connect.ret = n;
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(n);
@@ -475,9 +476,9 @@ sock_connect_nonblock(VALUE sock, VALUE addr, VALUE ex)
     n = connect(fptr->fd, (struct sockaddr*)RSTRING_PTR(addr), RSTRING_SOCKLEN(addr));
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_CONNECT;
-    ev_data.fd = fptr->fd;
-    ev_data.ret = n;
-    ev_data.socket.addr = SockAddrStringValuePtr(addr);
+    ev_data.connect.fd = fptr->fd;
+    //ev_data.connect.addr = SockAddrStringValuePtr(addr);
+    ev_data.connect.ret = n;
 
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
@@ -590,18 +591,19 @@ static VALUE
 sock_bind(VALUE sock, VALUE addr)
 {
     VALUE rai;
+    int ret;
     rb_io_t *fptr;
     RUBY_EVENT_IO_SETUP();
 
     SockAddrStringValueWithAddrinfo(addr, rai);
     GetOpenFile(sock, fptr);
-    if (bind(fptr->fd, (struct sockaddr*)RSTRING_PTR(addr), RSTRING_SOCKLEN(addr)) < 0)
+    if (ret = bind(fptr->fd, (struct sockaddr*)RSTRING_PTR(addr), RSTRING_SOCKLEN(addr)) < 0)
 	rsock_sys_fail_raddrinfo_or_sockaddr("bind(2)", addr, rai);
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_BIND;
-    ev_data.fd = fptr->fd;
-    ev_data.ret = 0;
-    ev_data.socket.addr = SockAddrStringValuePtr(addr);
+    ev_data.bind.fd = fptr->fd;
+    ev_data.bind.ret = ret;
+    //ev_data.socket.addr = SockAddrStringValuePtr(addr);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(0);
@@ -682,16 +684,17 @@ rsock_sock_listen(VALUE sock, VALUE log)
 {
     RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr;
-    int backlog;
+    int backlog, ret;
 
     backlog = NUM2INT(log);
     GetOpenFile(sock, fptr);
-    if (listen(fptr->fd, backlog) < 0)
+    if (ret = listen(fptr->fd, backlog) < 0)
 	rb_sys_fail("listen(2)");
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_LISTEN;
-    ev_data.fd = fptr->fd;
-    ev_data.ret = 0;
+    ev_data.listen.fd = fptr->fd;
+    ev_data.listen.backlog = backlog;
+    ev_data.listen.ret = ret;
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(0);
@@ -839,10 +842,11 @@ sock_accept(VALUE sock)
     socklen_t len = (socklen_t)sizeof buf;
 
     GetOpenFile(sock, fptr);
-    sock2 = rsock_s_accept(rb_cSocket,fptr->fd,&buf.addr,&len);
-
     ev_data.flag = RUBY_EVENT_IO_SOCKET_ACCEPT;
-    ev_data.fd = fptr->fd;
+    ev_data.accept.fd = fptr->fd;
+    sock2 = rsock_s_accept(rb_cSocket,fptr->fd,&buf.addr,&len);
+    GetOpenFile(sock2, fptr);
+    ev_data.accept.ret = fptr->fd;
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return rb_assoc_new(sock2, rsock_io_socket_addrinfo(sock2, &buf.addr, len));
@@ -976,7 +980,7 @@ sock_gethostname(VALUE obj)
     rb_str_resize(name, strlen(RSTRING_PTR(name)));
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTNAME;
-    ev_data.socket.addr = StringValueCStr(name);
+    ev_data.gethostname.host = StringValueCStr(name);
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, obj, 0, 0, 0, (VALUE)&ev_data);
 
     return name;
@@ -1119,7 +1123,8 @@ sock_s_gethostbyaddr(int argc, VALUE *argv)
 #endif
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTBYADDR;
-    ev_data.socket.addr = StringValueCStr(addr);
+    ev_data.gethostbyaddr.addr = StringValueCStr(addr);
+    ev_data.gethostbyaddr.ret = h->h_name;
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
 
     return ary;
@@ -1164,6 +1169,11 @@ sock_s_getservbyname(int argc, VALUE *argv)
 	    rb_raise(rb_eSocket, "no such service %s/%s", servicename, protoname);
 	}
     }
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_GETSERVBYNAME;
+    ev_data.getservbyname.service = servicename;
+    ev_data.getservbyname.protocol = protoname;
+    ev_data.getservbyname.ret = port;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
     return INT2FIX(port);
 }
 
@@ -1201,6 +1211,11 @@ sock_s_getservbyport(int argc, VALUE *argv)
     if (!sp) {
 	rb_raise(rb_eSocket, "no such service for port %d/%s", (int)portnum, protoname);
     }
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_GETSERVBYPORT;
+    ev_data.getservbyport.port = portnum;
+    ev_data.getservbyport.protocol = protoname;
+    ev_data.getservbyport.ret = sp->s_name;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
     return rb_tainted_str_new2(sp->s_name);
 }
 

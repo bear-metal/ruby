@@ -2122,17 +2122,21 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_IO_WRITE   0x0008
 
 #define RUBY_EVENT_IO_SOCKET               0x0010
-#define RUBY_EVENT_IO_SOCKET_BIND          0x0020
-#define RUBY_EVENT_IO_SOCKET_CONNECT       0x0040
-#define RUBY_EVENT_IO_SOCKET_LISTEN        0x0080
-#define RUBY_EVENT_IO_SOCKET_ACCEPT        0x0100
-#define RUBY_EVENT_IO_SOCKET_SHUTDOWN      0x0200
-#define RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME 0x0400
-#define RUBY_EVENT_IO_SOCKET_GETHOSTBYADDR 0x0800
-#define RUBY_EVENT_IO_SOCKET_GETHOSTNAME   0x1000
-#define RUBY_EVENT_IO_SOCKET_RECVFROM      0x2000
-#define RUBY_EVENT_IO_SOCKET_SEND          0x4000
-#define RUBY_EVENT_IO_SOCKET_SENDTO        0x8000
+#define RUBY_EVENT_IO_SOCKETPAIR           0x0020
+#define RUBY_EVENT_IO_SOCKET_BIND          0x0040
+#define RUBY_EVENT_IO_SOCKET_CONNECT       0x0080
+#define RUBY_EVENT_IO_SOCKET_LISTEN        0x0100
+#define RUBY_EVENT_IO_SOCKET_ACCEPT        0x0200
+#define RUBY_EVENT_IO_SOCKET_SHUTDOWN      0x0400
+#define RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME 0x0800
+#define RUBY_EVENT_IO_SOCKET_GETHOSTBYADDR 0x1000
+#define RUBY_EVENT_IO_SOCKET_GETHOSTNAME   0x2000
+#define RUBY_EVENT_IO_SOCKET_GETSERVBYNAME 0x4000
+#define RUBY_EVENT_IO_SOCKET_GETSERVBYPORT 0x8000
+
+#define RUBY_EVENT_IO_SOCKET_RECVFROM      0x4000
+#define RUBY_EVENT_IO_SOCKET_SEND          0x9000
+#define RUBY_EVENT_IO_SOCKET_SENDTO        0x010000
 
 #define RUBY_EVENT_IO_SETUP() \
   rb_event_io_data_t ev_data; \
@@ -2151,12 +2155,6 @@ typedef struct rb_event_io_data_t {
         const char *name;
         int mode;
       } file;
-      struct {
-        int domain;
-        int type;
-        int protocol;
-        const char *addr;
-      } socket;
 		  struct {
 				const char *path;
 				int flags;
@@ -2177,6 +2175,65 @@ typedef struct rb_event_io_data_t {
 				size_t capa;
 				ssize_t ret;
 			} write;
+      struct {
+        int domain;
+        int type;
+        int protocol;
+        int ret;
+        const char *addr;
+      } socket;
+      struct {
+        int domain;
+        int type;
+        int protocol;
+        int fds[2];
+        int ret;
+      } socketpair;
+      struct {
+        int fd;
+        const char *addr;
+        int ret;
+      } bind;
+      struct {
+        int fd;
+        const char *addr;
+        int ret;
+      } connect;
+      struct {
+        int fd;
+        int backlog;
+        int ret;
+      } listen;
+      struct {
+        int fd;
+        int ret;
+      } accept;
+      struct {
+        const char* host;
+      } gethostname;
+      struct {
+        int fd;
+        int how;
+        int ret;
+      } shutdown;
+      struct {
+        const char* addr;
+        const char* ret;
+      } gethostbyaddr;
+      struct {
+        const char* host;
+        const char* ret;
+      } gethostbyname;
+      struct {
+        const char* service;
+        const char* protocol;
+        int ret;
+      } getservbyname;
+      struct {
+        long port;
+        const char* protocol;
+        const char* ret;
+      } getservbyport;
     };
 } rb_event_io_data_t;
 

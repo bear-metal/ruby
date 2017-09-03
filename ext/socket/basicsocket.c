@@ -64,7 +64,7 @@ bsock_shutdown(int argc, VALUE *argv, VALUE sock)
 {
     RUBY_EVENT_IO_SETUP();
     VALUE howto;
-    int how;
+    int how, ret;
     rb_io_t *fptr;
 
     rb_scan_args(argc, argv, "01", &howto);
@@ -77,11 +77,13 @@ bsock_shutdown(int argc, VALUE *argv, VALUE sock)
 	}
     }
     GetOpenFile(sock, fptr);
-    if (shutdown(fptr->fd, how) == -1)
+    if (ret = shutdown(fptr->fd, how) == -1)
 	rb_sys_fail("shutdown(2)");
 
 	  ev_data.flag = RUBY_EVENT_IO_SOCKET_SHUTDOWN;
-	  ev_data.fd = fptr->fd;
+	  ev_data.shutdown.fd = fptr->fd;
+    ev_data.shutdown.how = how;
+    ev_data.shutdown.ret = ret;
 	  EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
 
     return INT2FIX(0);
@@ -100,10 +102,19 @@ bsock_shutdown(int argc, VALUE *argv, VALUE sock)
 static VALUE
 bsock_close_read(VALUE sock)
 {
+    RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr;
+    int ret;
 
     GetOpenFile(sock, fptr);
-    shutdown(fptr->fd, 0);
+    ret = shutdown(fptr->fd, 0);
+
+	  ev_data.flag = RUBY_EVENT_IO_SOCKET_SHUTDOWN;
+	  ev_data.shutdown.fd = fptr->fd;
+    ev_data.shutdown.how = 0;
+    ev_data.shutdown.ret = ret;
+	  EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
+
     if (!(fptr->mode & FMODE_WRITABLE)) {
 	return rb_io_close(sock);
     }
@@ -130,13 +141,22 @@ bsock_close_read(VALUE sock)
 static VALUE
 bsock_close_write(VALUE sock)
 {
+    RUBY_EVENT_IO_SETUP();
     rb_io_t *fptr;
+    int ret;
 
     GetOpenFile(sock, fptr);
     if (!(fptr->mode & FMODE_READABLE)) {
 	return rb_io_close(sock);
     }
-    shutdown(fptr->fd, 1);
+    ret = shutdown(fptr->fd, 1);
+
+	  ev_data.flag = RUBY_EVENT_IO_SOCKET_SHUTDOWN;
+	  ev_data.shutdown.fd = fptr->fd;
+    ev_data.shutdown.how = 1;
+    ev_data.shutdown.ret = ret;
+	  EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, sock, 0, 0, 0, (VALUE)&ev_data);
+
     fptr->mode &= ~FMODE_WRITABLE;
 
     return Qnil;

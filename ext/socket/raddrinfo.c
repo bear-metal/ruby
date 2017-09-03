@@ -691,10 +691,8 @@ make_hostent_internal(struct hostent_arg *arg)
     }
 
     ev_data.flag = RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME;
-    //ev_data.socket.type = ai->ai_socktype;
-    //ev_data.socket.protocol = ai->ai_protocol;
-    ev_data.socket.addr = StringValueCStr(host);
-
+    ev_data.gethostbyname.host = StringValueCStr(host);
+    ev_data.gethostbyname.ret = hostp;
     EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
 
     return ary;

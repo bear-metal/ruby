@@ -105,10 +105,15 @@ class TestTracepointObj < Test::Unit::TestCase
       addr = Addrinfo.tcp("127.0.0.1", 2222)
       s.bind(addr)
       serv = Socket.new(:INET, :STREAM, 0)
-      serv.bind(Socket.sockaddr_in(0, "127.0.0.1"))
       serv.listen(5)
       c = Socket.new(:INET, :STREAM, 0)
-      c.connect(serv.local_address)
+      c.connect(serv.connect_address)
+      serv.accept
+      Socket.gethostbyname(Socket.gethostname)
+      c.shutdown
+      Socket.gethostbyaddr('221.186.184.75')
+      Socket.getservbyname("smtp") 
+      Socket.getservbyport(80)
     end
 
     assert_equal [6, 2, 1, 1, 0, 0, 0], result
