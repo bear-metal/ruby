@@ -22,6 +22,7 @@ struct socket_events_track {
     size_t gethostbyname_count;
     size_t getservbyname_count;
     size_t getservbyport_count;
+    size_t getaddrinfo_count;
     VALUE ios;
 };
 
@@ -111,6 +112,10 @@ rb_socket_events_i(VALUE tpval, void *data)
          track->getservbyport_count++;
          printf("RUBY_EVENT_IO_GETSERVBYPORT port: %ld protocol: %s ret: %s\n", evt_data->getservbyport.port, evt_data->getservbyport.protocol, evt_data->getservbyport.ret);
          break;
+    case RUBY_EVENT_IO_SOCKET_GETADDRINFO:
+         track->getaddrinfo_count++;
+         printf("RUBY_EVENT_IO_GETADDRINFO node: %s service: %s family: %d socktype: %d protocol: %d flags: %d\n", evt_data->getaddrinfo.node, evt_data->getaddrinfo.service, evt_data->getaddrinfo.family, evt_data->getaddrinfo.socktype, evt_data->getaddrinfo.protocol, evt_data->getaddrinfo.flags);
+         break;
 /*
     case RUBY_EVENT_IO_SOCKET_GETHOSTBYNAME:
          track->gethostbyname_count++;
@@ -142,7 +147,7 @@ rb_track_file_io(VALUE self)
 static VALUE
 rb_track_socket_io(VALUE self)
 {
-    struct socket_events_track track = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, rb_hash_new()};
+    struct socket_events_track track = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, rb_hash_new()};
     VALUE tpval = rb_tracepoint_new(0, RUBY_EVENT_IO, rb_socket_events_i, &track);
     VALUE result = rb_ary_new();
 

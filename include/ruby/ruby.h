@@ -2133,6 +2133,7 @@ int ruby_native_thread_p(void);
 #define RUBY_EVENT_IO_SOCKET_GETHOSTNAME   0x2000
 #define RUBY_EVENT_IO_SOCKET_GETSERVBYNAME 0x4000
 #define RUBY_EVENT_IO_SOCKET_GETSERVBYPORT 0x8000
+#define RUBY_EVENT_IO_SOCKET_GETADDRINFO   0x010000
 
 #define RUBY_EVENT_IO_SOCKET_RECVFROM      0x4000
 #define RUBY_EVENT_IO_SOCKET_SEND          0x9000
@@ -2234,6 +2235,14 @@ typedef struct rb_event_io_data_t {
         const char* protocol;
         const char* ret;
       } getservbyport;
+      struct {
+        const char* node;
+        const char* service;
+        int family;
+        int socktype;
+        int protocol;
+        int flags;
+      } getaddrinfo;
     };
 } rb_event_io_data_t;
 

@@ -505,6 +505,7 @@ port_str(VALUE port, char *pbuf, size_t pbuflen, int *flags_ptr)
 struct rb_addrinfo*
 rsock_getaddrinfo(VALUE host, VALUE port, struct addrinfo *hints, int socktype_hack)
 {
+    RUBY_EVENT_IO_SETUP();
     struct rb_addrinfo* res = NULL;
     char *hostp, *portp;
     int error;
@@ -526,6 +527,15 @@ rsock_getaddrinfo(VALUE host, VALUE port, struct addrinfo *hints, int socktype_h
         }
         rsock_raise_socket_error("getaddrinfo", error);
     }
+
+    ev_data.flag = RUBY_EVENT_IO_SOCKET_GETADDRINFO;
+    ev_data.getaddrinfo.node = hostp;
+    ev_data.getaddrinfo.service = portp;
+    ev_data.getaddrinfo.family = hints->ai_family;
+    ev_data.getaddrinfo.socktype = hints->ai_socktype;
+    ev_data.getaddrinfo.protocol = hints->ai_protocol;
+    ev_data.getaddrinfo.flags = hints->ai_flags;
+    EXEC_EVENT_HOOK(th, RUBY_EVENT_IO, th->ec.cfp->self, 0, 0, 0, (VALUE)&ev_data);
 
     return res;
 }

@@ -114,6 +114,7 @@ class TestTracepointObj < Test::Unit::TestCase
       Socket.gethostbyaddr('221.186.184.75')
       Socket.getservbyname("smtp") 
       Socket.getservbyport(80)
+      #Socket.getaddrinfo("www.ruby-lang.org", "http", nil, :STREAM)
     end
 
     assert_equal [6, 2, 1, 1, 0, 0, 0], result
