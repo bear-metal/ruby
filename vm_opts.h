@@ -53,4 +53,8 @@
 #define VM_COLLECT_USAGE_DETAILS     0
 #endif
 
+#ifndef VM_COLLECT_HW_DETAILS
+#define VM_COLLECT_HW_DETAILS     1
+#endif
+
 #endif /* RUBY_VM_OPTS_H */

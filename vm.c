@@ -291,6 +291,11 @@ static void vm_collect_usage_insn(int insn);
 static void vm_collect_usage_register(int reg, int isset);
 #endif
 
+#if VM_COLLECT_HW_DETAILS
+static void vm_start_collect_hw_usage_insn(int insn);
+static void vm_stop_collect_hw_usage_insn(int insn);
+#endif
+
 static VALUE vm_make_env_object(const rb_execution_context_t *ec, rb_control_frame_t *cfp);
 static VALUE vm_invoke_bmethod(rb_execution_context_t *ec, rb_proc_t *proc, VALUE self, int argc, const VALUE *argv, VALUE block_handler);
 static VALUE vm_invoke_proc(rb_execution_context_t *ec, rb_proc_t *proc, VALUE self, int argc, const VALUE *argv, VALUE block_handler);
@@ -2275,6 +2280,32 @@ vm_default_params_setup(rb_vm_t *vm)
     check_machine_stack_size(&vm->default_params.fiber_machine_stack_size);
 }
 
+#if VM_COLLECT_HW_DETAILS
+#define ERROR_RETURN(retval) { fprintf(stderr, "Error %d %s:line %d: \n", retval,__FILE__,__LINE__);  exit(retval); }
+
+static void
+vm_setup_hw_counters(rb_vm_t *vm){
+  int num_hwcntrs = 0;
+  int retval;
+  char errstring[PAPI_MAX_STR_LEN];
+  vm->hw_events = {PAPI_TOT_INS, PAPI_TOT_CYC};
+
+  if((retval = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT )
+  {
+     fprintf(stderr, "Error: %d %s\n",retval, errstring);
+     exit(1);
+  }
+
+  if ((num_hwcntrs = PAPI_num_counters()) < PAPI_OK)
+  {
+     printf("There are no counters available. \n");
+     exit(1);
+  }
+
+  printf("There are %d counters in this system\n",num_hwcntrs);
+}
+#endif
+
 static void
 vm_init2(rb_vm_t *vm)
 {
@@ -2284,6 +2315,9 @@ vm_init2(rb_vm_t *vm)
     vm->src_encoding_index = -1;
 
     vm_default_params_setup(vm);
+#if VM_COLLECT_HW_DETAILS
+    vm_setup_hw_counters(vm);
+#endif
 }
 
 /* Thread */
@@ -2774,6 +2808,10 @@ static VALUE usage_analysis_operand_stop(VALUE self);
 static VALUE usage_analysis_register_stop(VALUE self);
 #endif
 
+#if VM_COLLECT_HW_DETAILS
+static VALUE hw_usage_analysis_insn_stop(VALUE self);
+#endif
+
 void
 Init_VM(void)
 {
@@ -2972,6 +3010,11 @@ Init_VM(void)
     rb_define_singleton_method(rb_cRubyVM, "USAGE_ANALYSIS_INSN_STOP", usage_analysis_insn_stop, 0);
     rb_define_singleton_method(rb_cRubyVM, "USAGE_ANALYSIS_OPERAND_STOP", usage_analysis_operand_stop, 0);
     rb_define_singleton_method(rb_cRubyVM, "USAGE_ANALYSIS_REGISTER_STOP", usage_analysis_register_stop, 0);
+#endif
+
+#if VM_COLLECT_HW_DETAILS
+  rb_define_const(rb_cRubyVM, "HW_USAGE_ANALYSIS_INSN", rb_hash_new());
+  rb_define_singleton_method(rb_cRubyVM, "HW_USAGE_ANALYSIS_INSN_STOP", hw_usage_analysis_insn_stop, 0);
 #endif
 
     /* ::RubyVM::OPTS, which shows vm build options */
@@ -3381,6 +3424,54 @@ vm_collect_usage_register(int reg, int isset)
     if (ruby_vm_collect_usage_func_register)
 	(*ruby_vm_collect_usage_func_register)(reg, isset);
 }
+#endif
+
+#if VM_COLLECT_HW_DETAILS
+
+#define HASH_ASET(h, k, v) rb_hash_aset((h), (st_data_t)(k), (st_data_t)(v))
+
+void (*ruby_vm_collect_hw_usage_func_insn)(int insn) = vm_start_collect_hw_usage_insn;
+
+/* :nodoc: */
+static VALUE
+hw_usage_analysis_insn_stop(VALUE self)
+{
+    ruby_vm_collect_hw_usage_func_insn = 0;
+    return Qnil;
+}
+
+static void
+vm_start_collect_hw_usage_insn(int insn)
+{
+  int ret;
+  rb_vm_t *vm = ruby_current_vm_ptr;
+  if ( (ret = PAPI_start_counters(vm->hw_events, VM_NUM_HW_EVENTS)) != PAPI_OK)
+      ERROR_RETURN(ret);
+}
+
+static void
+vm_stop_collect_hw_usage_insn(int insn)
+{
+    int ret;
+    long long hw_values[VM_NUM_HW_EVENTS];
+    ID hw_usage_hash;
+
+    VALUE uh;
+    VALUE counters;
+
+    if ( (ret = PAPI_read_counters(values, VM_NUM_HW_EVENTS)) != PAPI_OK)
+       ERROR_RETURN(ret);
+
+    CONST_ID(hw_usage_hash, "HW_USAGE_ANALYSIS_INSN");
+    uh = rb_const_get(rb_cRubyVM, hw_usage_hash);
+    if ((counters = rb_hash_aref(uh, INT2FIX(insn))) == Qnil) {
+	counters = rb_hash_new();
+  HASH_ASET(counters, rb_intern("instructions", LONG2FIX(hw_values[0]));
+  HASH_ASET(counters, rb_intern("cycles", LONG2FIX(hw_values[0]));
+	HASH_ASET(uh, INT2FIX(insn), counters);
+    }
+}
+
 #endif
 
 #include "vm_call_iseq_optimized.inc" /* required from vm_insnhelper.c */

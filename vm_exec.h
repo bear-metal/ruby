@@ -189,4 +189,8 @@ default:                        \
 #define CHECK_VM_STACK_OVERFLOW_FOR_INSN(cfp, margin)
 #endif
 
+#if VM_COLLECT_HW_DETAILS
+#include "papi.h"				
+#endif
+
 #endif /* RUBY_VM_EXEC_H */

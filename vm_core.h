@@ -77,6 +77,10 @@
 #include <setjmp.h>
 #include <signal.h>
 
+#if VM_COLLECT_HW_DETAILS
+#define VM_NUM_HW_EVENTS 2
+#endif
+
 #ifndef NSIG
 # define NSIG (_SIGMAX + 1)      /* For QNX */
 #endif
@@ -571,6 +575,10 @@ typedef struct rb_vm_struct {
 	size_t fiber_vm_stack_size;
 	size_t fiber_machine_stack_size;
     } default_params;
+
+#if VM_COLLECT_HW_DETAILS
+    int hw_events[VM_NUM_HW_EVENTS];
+#endif
 
     short redefined_flag[BOP_LAST_];
 } rb_vm_t;
