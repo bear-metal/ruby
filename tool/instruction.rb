@@ -823,6 +823,10 @@ class RubyVM
       }
     end
 
+    def make_header_hw_analysis insn
+      commit "  START_COLLECT_HW_USAGE_INSN(BIN(#{insn.name}));"
+    end
+
     def make_header_analysis insn
       commit "  COLLECT_USAGE_INSN(BIN(#{insn.name}));"
       insn.opes.each_with_index{|op, i|
@@ -850,6 +854,10 @@ class RubyVM
       commit  "  #define INSN_IS_SC()     #{insn.sc ? 0 : 1}"
       commit  "  #define INSN_LABEL(lab)  LABEL_#{insn.name}_##lab"
       commit  "  #define LABEL_IS_SC(lab) LABEL_##lab##_###{insn.sc.size == 0 ? 't' : 'f'}"
+    end
+
+    def make_footer_hw_analysis insn
+      commit "  STOP_COLLECT_HW_USAGE_INSN(BIN(#{insn.name}));"
     end
 
     def each_footer_stack_val insn
@@ -886,6 +894,7 @@ class RubyVM
     def make_header insn
       label = insn.trace ? '' : "START_OF_ORIGINAL_INSN(#{insn.name});"
       commit "INSN_ENTRY(#{insn.name}){#{label}"
+      make_header_hw_analysis insn
       make_header_prepare_stack insn
       commit "{"
       unless insn.trace
@@ -909,6 +918,7 @@ class RubyVM
         make_footer_stack_val insn
         make_footer_default_operands insn
         make_footer_undefs insn
+        make_footer_hw_analysis insn
       end
       commit "  END_INSN(#{insn.name});}}}"
     end

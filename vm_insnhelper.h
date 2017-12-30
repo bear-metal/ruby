@@ -32,6 +32,15 @@ RUBY_SYMBOL_EXPORT_END
 #define COLLECT_USAGE_REGISTER(reg, s)		/* none */
 #endif
 
+#if VM_COLLECT_HW_DETAILS
+#define START_COLLECT_HW_USAGE_INSN(insn)           vm_start_collect_hw_usage_insn(insn)
+#define STOP_COLLECT_HW_USAGE_INSN(insn)            vm_stop_collect_hw_usage_insn(insn)
+#else
+#define START_COLLECT_HW_USAGE_INSN(insn)  /* none */
+#define STOP_COLLECT_HW_USAGE_INSN(insn)  /* none */
+#endif
+
+
 /**********************************************************/
 /* deal with stack                                        */
 /**********************************************************/

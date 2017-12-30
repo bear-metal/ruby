@@ -1311,6 +1311,17 @@ AS_IF([test "x$with_gmp" != xno],
      AC_SEARCH_LIBS([__gmpz_init], [gmp],
        [AC_DEFINE(HAVE_LIBGMP, 1)]))])
 
+AC_ARG_WITH([papi],
+  [AS_HELP_STRING([--with-papi],
+    [use PAPI for hw perf counters])],
+  [with_papi=$withval],
+  [with_papi=no])
+AS_IF([test "x$with_papi" == xyes],
+  [AC_CHECK_HEADERS(papi.h)
+   AS_IF([test "x$ac_cv_header_papi_h" != xno],
+     AC_SEARCH_LIBS([PAPI_library_init], [papi],
+       [RUBY_PREPEND_OPTION(LIBS, -lpapi)]))])
+
 AC_ARG_WITH([jemalloc],
   [AS_HELP_STRING([--with-jemalloc],[use jemalloc allocator])],
   [with_jemalloc=$withval], [with_jemalloc=no])
