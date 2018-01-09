@@ -3446,7 +3446,8 @@ vm_start_collect_hw_usage_insn(int insn)
 {
     int ret;
     rb_vm_t *vm = ruby_current_vm_ptr;
-    if ( (ret = PAPI_start_counters(vm->hw_events, VM_NUM_HW_EVENTS)) != PAPI_OK)
+    int Events[2] = {PAPI_TOT_INS, PAPI_TOT_CYC};
+    if ( (ret = PAPI_start_counters(Events, VM_NUM_HW_EVENTS)) != PAPI_OK)
         ERROR_RETURN(ret);
 }
 
