@@ -2281,7 +2281,7 @@ vm_default_params_setup(rb_vm_t *vm)
 }
 
 #if VM_COLLECT_HW_DETAILS
-#define ERROR_RETURN(retval) { fprintf(stderr, "Error %d %s:line %d: \n", retval,__FILE__,__LINE__);  exit(retval); }
+#define PAPI_ERROR_RETURN(retval) { fprintf(stderr, "Error %d %s:line %d: \n", retval,__FILE__,__LINE__);  exit(retval); }
 
 static void
 vm_setup_hw_counters(rb_vm_t *vm){
@@ -2302,8 +2302,6 @@ vm_setup_hw_counters(rb_vm_t *vm){
      printf("There are no counters available. \n");
      exit(1);
   }
-
-  printf("There are %d counters in this system\n",num_hwcntrs);
 }
 #endif
 
@@ -3446,9 +3444,9 @@ vm_start_collect_hw_usage_insn(int insn)
 {
     int ret;
     rb_vm_t *vm = ruby_current_vm_ptr;
-    int Events[2] = {PAPI_TOT_INS, PAPI_TOT_CYC};
+    int Events[VM_NUM_HW_EVENTS] = {PAPI_TOT_INS, PAPI_TOT_CYC};
     if ( (ret = PAPI_start_counters(Events, VM_NUM_HW_EVENTS)) != PAPI_OK)
-        ERROR_RETURN(ret);
+        PAPI_ERROR_RETURN(ret);
 }
 
 static void
@@ -3462,7 +3460,7 @@ vm_stop_collect_hw_usage_insn(int insn)
     long long hw_values[VM_NUM_HW_EVENTS];
 
     if ( (ret = PAPI_read_counters(hw_values, VM_NUM_HW_EVENTS)) != PAPI_OK)
-       ERROR_RETURN(ret);
+       PAPI_ERROR_RETURN(ret);
 
     CONST_ID(hw_usage_hash, "HW_USAGE_ANALYSIS_INSN");
     uh = rb_const_get(rb_cRubyVM, hw_usage_hash);
