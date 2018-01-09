@@ -3458,9 +3458,9 @@ vm_stop_collect_hw_usage_insn(int insn)
 
     VALUE uh;
     VALUE counters;
-    long long hw_values[NUM_EVENTS];
+    long long hw_values[VM_NUM_HW_EVENTS];
 
-    if ( (ret = PAPI_read_counters(values, VM_NUM_HW_EVENTS)) != PAPI_OK)
+    if ( (ret = PAPI_read_counters(hw_values, VM_NUM_HW_EVENTS)) != PAPI_OK)
        ERROR_RETURN(ret);
 
     CONST_ID(hw_usage_hash, "HW_USAGE_ANALYSIS_INSN");
