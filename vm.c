@@ -3444,8 +3444,7 @@ vm_start_collect_hw_usage_insn(int insn)
 {
     int ret;
     rb_vm_t *vm = ruby_current_vm_ptr;
-    int Events[VM_NUM_HW_EVENTS] = {PAPI_TOT_INS, PAPI_TOT_CYC};
-    if ( (ret = PAPI_start_counters(Events, VM_NUM_HW_EVENTS)) != PAPI_OK)
+    if ( (ret = PAPI_start_counters(vm->hw_events, VM_NUM_HW_EVENTS)) != PAPI_OK)
         PAPI_ERROR_RETURN(ret);
 }
 
@@ -3459,7 +3458,7 @@ vm_stop_collect_hw_usage_insn(int insn)
     VALUE counters;
     long long hw_values[VM_NUM_HW_EVENTS];
 
-    if ( (ret = PAPI_read_counters(hw_values, VM_NUM_HW_EVENTS)) != PAPI_OK)
+    if ( (ret = PAPI_stop_counters(hw_values, VM_NUM_HW_EVENTS)) != PAPI_OK)
        PAPI_ERROR_RETURN(ret);
 
     CONST_ID(hw_usage_hash, "HW_USAGE_ANALYSIS_INSN");
