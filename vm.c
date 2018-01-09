@@ -3444,23 +3444,23 @@ hw_usage_analysis_insn_stop(VALUE self)
 static void
 vm_start_collect_hw_usage_insn(int insn)
 {
-  int ret;
-  rb_vm_t *vm = ruby_current_vm_ptr;
-  if ( (ret = PAPI_start_counters(vm->hw_events, VM_NUM_HW_EVENTS)) != PAPI_OK)
-      ERROR_RETURN(ret);
+    int ret;
+    rb_vm_t *vm = ruby_current_vm_ptr;
+    if ( (ret = PAPI_start_counters(vm->hw_events, VM_NUM_HW_EVENTS)) != PAPI_OK)
+        ERROR_RETURN(ret);
 }
 
 static void
 vm_stop_collect_hw_usage_insn(int insn)
 {
     int ret;
-    long long hw_values[VM_NUM_HW_EVENTS];
     ID hw_usage_hash;
 
     VALUE uh;
     VALUE counters;
+    long long hw_values[NUM_EVENTS];
 
-    if ( (ret = PAPI_read_counters(hw_values, VM_NUM_HW_EVENTS)) != PAPI_OK)
+    if ( (ret = PAPI_read_counters(values, VM_NUM_HW_EVENTS)) != PAPI_OK)
        ERROR_RETURN(ret);
 
     CONST_ID(hw_usage_hash, "HW_USAGE_ANALYSIS_INSN");
@@ -3468,7 +3468,7 @@ vm_stop_collect_hw_usage_insn(int insn)
     if ((counters = rb_hash_aref(uh, INT2FIX(insn))) == Qnil) {
 	counters = rb_hash_new();
   HASH_ASET(counters, rb_intern("instructions"), LONG2FIX(hw_values[0]));
-  HASH_ASET(counters, rb_intern("cycles"), LONG2FIX(hw_values[0]));
+  HASH_ASET(counters, rb_intern("cycles"), LONG2FIX(hw_values[1]));
 	HASH_ASET(uh, INT2FIX(insn), counters);
     }
 }
