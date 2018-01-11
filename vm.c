@@ -2292,7 +2292,7 @@ vm_setup_hw_counters(rb_vm_t *vm){
   vm->hw_events = PAPI_NULL;
   int events[2] = {PAPI_TOT_INS, PAPI_TOT_CYC};
 
-  if((retval = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT )
+  if((ret = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT )
   {
      fprintf(stderr, "Error: %d %s\n",retval, errstring);
      exit(1);
