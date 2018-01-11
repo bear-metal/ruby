@@ -2290,7 +2290,7 @@ vm_setup_hw_counters(rb_vm_t *vm){
   char errstring[PAPI_MAX_STR_LEN];
   vm->hw_trace_running = 0;
   vm->hw_events = PAPI_NULL;
-  int events[2] = {PAPI_TOT_INS, PAPI_TOT_CYC}
+  int events[2] = {PAPI_TOT_INS, PAPI_TOT_CYC};
 
   if((retval = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT )
   {
@@ -3451,7 +3451,7 @@ vm_start_collect_hw_usage_insn(int insn)
     int ret;
     rb_vm_t *vm = ruby_current_vm_ptr;
     if (!vm->hw_trace_running) {
-      if ( (ret = PAPI_start_counters(vm->hw_events, VM_NUM_HW_EVENTS)) != PAPI_OK)
+      if ( (ret = PAPI_start(vm->hw_events)) != PAPI_OK)
           PAPI_ERROR_RETURN(ret);
       vm->hw_trace_running = 1;
     }
@@ -3468,7 +3468,7 @@ vm_stop_collect_hw_usage_insn(int insn)
     long long hw_values[VM_NUM_HW_EVENTS];
     rb_vm_t *vm = ruby_current_vm_ptr;
 
-    if ( (ret = PAPI_accum(vm->hw_events, VM_NUM_HW_EVENTS)) != PAPI_OK)
+    if ( (ret = PAPI_accum(vm->hw_events, hw_values)) != PAPI_OK)
        PAPI_ERROR_RETURN(ret);
 
     CONST_ID(hw_usage_hash, "HW_USAGE_ANALYSIS_INSN");
