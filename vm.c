@@ -2294,7 +2294,7 @@ vm_setup_hw_counters(rb_vm_t *vm){
 
   if((ret = PAPI_library_init(PAPI_VER_CURRENT)) != PAPI_VER_CURRENT )
   {
-     fprintf(stderr, "Error: %d %s\n",retval, errstring);
+     fprintf(stderr, "Error: %d %s\n",ret, errstring);
      exit(1);
   }
 
