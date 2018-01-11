@@ -577,7 +577,8 @@ typedef struct rb_vm_struct {
     } default_params;
 
 #if VM_COLLECT_HW_DETAILS
-    int hw_events[VM_NUM_HW_EVENTS];
+    int hw_events;
+    unsigned int hw_trace_running: 1;
 #endif
 
     short redefined_flag[BOP_LAST_];
