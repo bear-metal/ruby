@@ -3475,8 +3475,8 @@ vm_stop_collect_hw_usage_insn(int insn)
     uh = rb_const_get(rb_cRubyVM, hw_usage_hash);
     if ((counters = rb_hash_aref(uh, INT2FIX(insn))) == Qnil) {
 	counters = rb_hash_new();
-  HASH_ASET(counters, rb_intern("instructions"), LONG2FIX(hw_values[0]));
-  HASH_ASET(counters, rb_intern("cycles"), LONG2FIX(hw_values[1]));
+  HASH_ASET(counters, ID2SYM(rb_intern("instructions")), LONG2FIX(hw_values[0]));
+  HASH_ASET(counters, ID2SYM(rb_intern("cycles")), LONG2FIX(hw_values[1]));
 	HASH_ASET(uh, INT2FIX(insn), counters);
     }
 }
