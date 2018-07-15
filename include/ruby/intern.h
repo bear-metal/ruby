@@ -291,7 +291,7 @@ NORETURN(void rb_error_arity(int, int, int));
 static inline int
 rb_check_arity(int argc, int min, int max)
 {
-    if ((argc < min) || (max != UNLIMITED_ARGUMENTS && argc > max))
+    if RB_UNLIKELY((argc < min) || (max != UNLIMITED_ARGUMENTS && argc > max))
 	rb_error_arity(argc, min, max);
     return argc;
 }
