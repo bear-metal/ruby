@@ -27,14 +27,13 @@
 
 int
 main(int argc, char **argv)
-{
+{;
 #ifdef RUBY_DEBUG_ENV
     ruby_set_debug_option(getenv("RUBY_DEBUG"));
 #endif
 #ifdef HAVE_LOCALE_H
     setlocale(LC_CTYPE, "");
 #endif
-
     ruby_sysinit(&argc, &argv);
     {
 	RUBY_INIT_STACK;

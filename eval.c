@@ -62,7 +62,7 @@ ruby_setup(void)
      * affect as many future pages as possible for CoW-friendliness
      */
 #if defined(__linux__) && defined(PR_SET_THP_DISABLE)
-    prctl(PR_SET_THP_DISABLE, 1, 0, 0, 0);
+    (PR_SET_THP_DISABLE, 1, 0, 0, 0);
 #endif
     Init_BareVM();
     Init_heap();
@@ -76,7 +76,9 @@ ruby_setup(void)
 	GET_VM()->running = 1;
     }
     EC_POP_TAG();
-
+#if defined(__linux__)
+    rb_hugepage_remap_static_code();
+#endif
     return state;
 }
 

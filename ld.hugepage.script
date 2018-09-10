@@ -1,0 +1,7 @@
+  SECTIONS {
+  .hugepage.text : { *(.hugepage.text) }
+  }
+  PROVIDE (__rubytext = .);
+  PROVIDE (_rubytext = .);
+  PROVIDE (rubytext = .);
+  INSERT BEFORE .text;

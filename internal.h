@@ -1360,6 +1360,9 @@ VALUE rb_hash_rehash(VALUE hash);
 int rb_hash_add_new_element(VALUE hash, VALUE key, VALUE val);
 #define HASH_PROC_DEFAULT FL_USER2
 
+/* hugepage.c */
+void rb_hugepage_remap_static_code();
+
 /* inits.c */
 void rb_call_inits(void);
 
