@@ -54,6 +54,11 @@ extern "C" {
 # define WARN_UNUSED_RESULT(x) x
 #endif
 
+#if defined(HAVE_LIBITTNOTIFY) && defined(HAVE_ITTNOTIFY_H)
+#define USE_ITTNOTIFY
+#include <ittnotify.h>
+#endif
+
 #if 0
 #elif defined(NO_SANITIZE)
 # define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS(x) \

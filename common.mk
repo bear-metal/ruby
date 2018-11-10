@@ -961,6 +961,7 @@ $(srcs_vpath)insns_info.inc: $(srcdir)/tool/ruby_vm/views/insns_info.inc.erb $(i
   $(srcdir)/tool/ruby_vm/views/_insn_type_chars.erb $(srcdir)/tool/ruby_vm/views/_insn_name_info.erb \
   $(srcdir)/tool/ruby_vm/views/_insn_len_info.erb $(srcdir)/tool/ruby_vm/views/_insn_operand_info.erb \
   $(srcdir)/tool/ruby_vm/views/_attributes.erb $(srcdir)/tool/ruby_vm/views/_insn_stack_increase.erb
+$(srcs_vpath)vmitt.inc: $(srcdir)/tool/ruby_vm/views/vmitt.inc.erb $(inc_common_headers)
 $(srcs_vpath)vmtc.inc: $(srcdir)/tool/ruby_vm/views/vmtc.inc.erb $(inc_common_headers)
 $(srcs_vpath)vm.inc: $(srcdir)/tool/ruby_vm/views/vm.inc.erb $(inc_common_headers) \
   $(srcdir)/tool/ruby_vm/views/_insn_entry.erb $(srcdir)/tool/ruby_vm/views/_trace_instruction.erb
@@ -3104,6 +3105,7 @@ vm.$(OBJEXT): {$(VPATH)}vm_insnhelper.c
 vm.$(OBJEXT): {$(VPATH)}vm_insnhelper.h
 vm.$(OBJEXT): {$(VPATH)}vm_method.c
 vm.$(OBJEXT): {$(VPATH)}vm_opts.h
+vm.$(OBJEXT): {$(VPATH)}vmitt.inc
 vm.$(OBJEXT): {$(VPATH)}vmtc.inc
 vm_backtrace.$(OBJEXT): $(CCAN_DIR)/check_type/check_type.h
 vm_backtrace.$(OBJEXT): $(CCAN_DIR)/container_of/container_of.h

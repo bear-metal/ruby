@@ -10,6 +10,9 @@
 /* insn <%= insn.pretty_name %> */
 INSN_ENTRY(<%= insn.name %>)
 {
+#if defined(USE_ITTNOTIFY)
+__itt_task_begin(itt_vm_domain, __itt_null, __itt_null, itt_<%= insn.name %>);
+#endif
 %#  NAME_OF_CURRENT_INSN is used in vm_exec.h
 #   define NAME_OF_CURRENT_INSN <%= insn.name %>
 #   define INSN_ATTR(x) <%= insn.call_attribute(' ## x ## ') %>
@@ -54,6 +57,9 @@ INSN_ENTRY(<%= insn.name %>)
 %   end
 % end
     if (leaf) ADD_PC(INSN_ATTR(width));
+#if defined(USE_ITTNOTIFY)
+__itt_task_end(itt_vm_domain);
+#endif
     END_INSN(<%= insn.name %>);
 #   undef INSN_ATTR
 #   undef NAME_OF_CURRENT_INSN

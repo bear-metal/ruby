@@ -1,0 +1,9 @@
+% RubyVM::BareInstructions.to_a.each do |insn|
+__itt_string_handle* itt_<%= insn.name %> = __itt_string_handle_create("insn_<%= insn.name %>");
+% end
+% RubyVM::OperandsUnifications.to_a.each do |insn|
+__itt_string_handle* itt_<%= insn.name %> = __itt_string_handle_create("insn_<%= insn.name %>");
+% end
+% RubyVM::InstructionsUnifications.to_a.each do |insn|
+__itt_string_handle* itt_<%= insn.name %> = __itt_string_handle_create("insn_<%= insn.name %>");
+% end

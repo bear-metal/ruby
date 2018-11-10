@@ -1080,6 +1080,19 @@ AS_IF([test "x$with_gmp" != xno],
      AC_SEARCH_LIBS([__gmpz_init], [gmp],
        [AC_DEFINE(HAVE_LIBGMP, 1)]))])
 
+AC_ARG_WITH([itt],
+  [AS_HELP_STRING([--with-itt],
+    [build with the Intel Instrumentation and Tracing Technologies APIs])],
+  [with_itt=$withval],
+  [with_itt=no])
+AS_IF([test "x$with_itt" != xno],
+  [CFLAGS="$CFLAGS -I$withval/include"
+   LDFLAGS="$LDFLAGS -L$withval/lib64"
+   AC_CHECK_HEADERS(ittnotify.h)
+   AS_IF([test "x$ac_cv_header_ittnotify_h" != xno],
+     AC_SEARCH_LIBS([__itt_init_ittlib], [ittnotify],
+       [AC_DEFINE(HAVE_LIBITTNOTIFY, 1)]))])
+
 AC_ARG_WITH([jemalloc],
   [AS_HELP_STRING([--with-jemalloc],[use jemalloc allocator])],
   [with_jemalloc=$withval], [with_jemalloc=no])

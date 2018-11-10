@@ -47,6 +47,9 @@ vm_stack_overflow_for_insn(void)
 static VALUE
 vm_exec_core(rb_execution_context_t *ec, VALUE initial)
 {
+#if defined(USE_ITTNOTIFY)
+__itt_domain* itt_vm_domain = __itt_domain_create("ruby.vm");
+#endif
 
 #if OPT_STACK_CACHING
 #if 0
@@ -94,6 +97,10 @@ vm_exec_core(rb_execution_context_t *ec, VALUE initial)
 #define GET_PC() (reg_pc)
 #undef  SET_PC
 #define SET_PC(x) (reg_cfp->pc = VM_REG_PC = (x))
+#endif
+
+#if defined(USE_ITTNOTIFY)
+#include "vmitt.inc"
 #endif
 
 #if OPT_TOKEN_THREADED_CODE || OPT_DIRECT_THREADED_CODE
