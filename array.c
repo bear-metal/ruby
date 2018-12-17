@@ -443,10 +443,9 @@ ary_shrink_capa(VALUE ary)
     ary_verify(ary);
 }
 
-void rb_ary_shrink_capa(void *obj)
+void rb_ary_shrink_capa(VALUE ary)
 {
     long capacity, old_capa;
-    VALUE ary = (VALUE)obj;
     /* OK to modify a frozen array by only reducing capacity */
     if (ARY_OWNS_HEAP_P(ary))
     {

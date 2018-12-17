@@ -1172,6 +1172,24 @@ RVALUE_AGE(VALUE obj)
 }
 #endif
 
+static void
+rb_gc_shrink_object(void *ptr)
+{
+    VALUE obj = (VALUE)ptr;
+
+    switch (BUILTIN_TYPE(obj)) {
+      case T_ARRAY:
+        rb_ary_shrink_capa(obj);
+        break;
+      case T_HASH:
+        rb_hash_rehash(obj);
+        break;
+      case T_STRING:
+        rb_str_resize(obj, RSTRING_LEN(obj));
+        break;
+    }
+}
+
 static inline void
 RVALUE_PAGE_OLD_UNCOLLECTIBLE_SET(rb_objspace_t *objspace, struct heap_page *page, VALUE obj)
 {
@@ -1179,7 +1197,7 @@ RVALUE_PAGE_OLD_UNCOLLECTIBLE_SET(rb_objspace_t *objspace, struct heap_page *pag
     objspace->rgengc.old_objects++;
     rb_transient_heap_promote(obj);
 
-    if (BUILTIN_TYPE(obj) == T_ARRAY) rb_postponed_job_register_one(0, rb_ary_shrink_capa, (void *)obj);
+    rb_postponed_job_register_one(0, rb_gc_shrink_object, (void *)obj);
 
 #if RGENGC_PROFILE >= 2
     objspace->profile.total_promoted_count++;
