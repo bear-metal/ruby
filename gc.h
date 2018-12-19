@@ -86,6 +86,12 @@ int ruby_get_stack_grow_direction(volatile VALUE *addr);
 #endif
 #define IS_STACK_DIR_UPPER() STACK_DIR_UPPER(1,0)
 
+#define RB_OBJ_SHRINKABLE_P(obj) ( \
+    ((RB_BUILTIN_TYPE(obj) == T_ARRAY) || \
+     (RB_BUILTIN_TYPE(obj) == T_STRING) || \
+     (RB_BUILTIN_TYPE(obj) == T_HASH)))
+
+
 const char *rb_obj_info(VALUE obj);
 const char *rb_raw_obj_info(char *buff, const int buff_size, VALUE obj);
 void rb_obj_info_dump(VALUE obj);
