@@ -1558,7 +1558,7 @@ vm_base_ptr(const rb_control_frame_t *cfp)
 {
     const rb_control_frame_t *prev_cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
 
-    if (cfp->iseq && VM_FRAME_RUBYFRAME_P(cfp)) {
+    if (LIKELY(cfp->iseq && VM_FRAME_RUBYFRAME_P(cfp))) {
 	VALUE *bp = prev_cfp->sp + cfp->iseq->body->local_table_size + VM_ENV_DATA_SIZE;
 	if (cfp->iseq->body->type == ISEQ_TYPE_METHOD) {
 	    /* adjust `self' */
