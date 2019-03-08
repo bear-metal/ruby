@@ -4007,7 +4007,7 @@ free_stack_chunks(mark_stack_t *stack)
 static void
 push_mark_stack(mark_stack_t *stack, VALUE data)
 {
-    if (stack->index == stack->limit) {
+    if (UNLIKELY(stack->index == stack->limit)) {
         push_mark_stack_chunk(stack);
     }
     stack->chunk->data[stack->index++] = data;
@@ -4016,10 +4016,10 @@ push_mark_stack(mark_stack_t *stack, VALUE data)
 static int
 pop_mark_stack(mark_stack_t *stack, VALUE *data)
 {
-    if (is_mark_stack_empty(stack)) {
+    if (UNLIKELY(is_mark_stack_empty(stack))) {
         return FALSE;
     }
-    if (stack->index == 1) {
+    if (UNLIKELY(stack->index == 1)) {
         *data = stack->chunk->data[--stack->index];
         pop_mark_stack_chunk(stack);
     }
@@ -4525,6 +4525,12 @@ rgengc_check_relation(rb_objspace_t *objspace, VALUE obj)
 #endif
 }
 
+#ifdef __GNUC__
+#define PREFETCH(addr, write_p) __builtin_prefetch(addr, write_p)
+#else
+#define PREFETCH(addr, write_p)
+#endif
+
 static void
 gc_grey(rb_objspace_t *objspace, VALUE obj)
 {
@@ -4538,7 +4544,8 @@ gc_grey(rb_objspace_t *objspace, VALUE obj)
 	MARK_IN_BITMAP(GET_HEAP_MARKING_BITS(obj), obj);
     }
 #endif
-
+    // WIP: hardcoded to 2 cache lines (prefetch 3 objects on 64bit); pending boundary check
+    PREFETCH((void *)obj + 128, 0);
     push_mark_stack(&objspace->mark_stack, obj);
 }
 
