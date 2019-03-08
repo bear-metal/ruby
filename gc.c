@@ -872,7 +872,7 @@ static void gc_grey(rb_objspace_t *objspace, VALUE ptr);
 static inline int gc_mark_set(rb_objspace_t *objspace, VALUE obj);
 NO_SANITIZE("memory", static inline int is_pointer_to_heap(rb_objspace_t *objspace, void *ptr));
 
-static void   push_mark_stack(mark_stack_t *, VALUE);
+static void   push_mark_stack(mark_stack_t *, int full_marking, VALUE);
 static int    pop_mark_stack(mark_stack_t *, VALUE *);
 static size_t mark_stack_size(mark_stack_t *stack);
 static void   shrink_stack_chunk_cache(mark_stack_t *stack);
@@ -3957,12 +3957,25 @@ shrink_stack_chunk_cache(mark_stack_t *stack)
     stack->unused_cache_size = stack->cache_size;
 }
 
+int compare_mark_stack(const void* a, const void* b)
+{
+  return (*(VALUE*)b - *(VALUE*)a);
+}
+
 static void
-push_mark_stack_chunk(mark_stack_t *stack)
+push_mark_stack_chunk(mark_stack_t *stack, int full_marking)
 {
     stack_chunk_t *next;
+    stack_chunk_t *prev;
 
     GC_ASSERT(stack->index == stack->limit);
+
+    /* Sort previous chunk to improve sequential locality of reference
+     * Skipped on full mark as time spent in qsort outweighs memory access benefits */
+    prev = stack->chunk ? stack->chunk->next : NULL;
+    if (LIKELY(prev) && !full_marking){
+        qsort(prev->data, STACK_CHUNK_SIZE, sizeof(VALUE), compare_mark_stack);
+    }
 
     if (stack->cache_size > 0) {
         next = stack->cache;
@@ -4005,10 +4018,10 @@ free_stack_chunks(mark_stack_t *stack)
 }
 
 static void
-push_mark_stack(mark_stack_t *stack, VALUE data)
+push_mark_stack(mark_stack_t *stack, int full_marking, VALUE data)
 {
-    if (stack->index == stack->limit) {
-        push_mark_stack_chunk(stack);
+    if (UNLIKELY(stack->index == stack->limit)) {
+        push_mark_stack_chunk(stack, full_marking);
     }
     stack->chunk->data[stack->index++] = data;
 }
@@ -4016,10 +4029,10 @@ push_mark_stack(mark_stack_t *stack, VALUE data)
 static int
 pop_mark_stack(mark_stack_t *stack, VALUE *data)
 {
-    if (is_mark_stack_empty(stack)) {
+    if (UNLIKELY(is_mark_stack_empty(stack))) {
         return FALSE;
     }
-    if (stack->index == 1) {
+    if (UNLIKELY(stack->index == 1)) {
         *data = stack->chunk->data[--stack->index];
         pop_mark_stack_chunk(stack);
     }
@@ -4539,7 +4552,7 @@ gc_grey(rb_objspace_t *objspace, VALUE obj)
     }
 #endif
 
-    push_mark_stack(&objspace->mark_stack, obj);
+    push_mark_stack(&objspace->mark_stack, is_full_marking(objspace), obj);
 }
 
 static void
@@ -5121,7 +5134,7 @@ allrefs_i(VALUE obj, void *ptr)
     struct allrefs *data = (struct allrefs *)ptr;
 
     if (allrefs_add(data, obj)) {
-	push_mark_stack(&data->mark_stack, obj);
+	push_mark_stack(&data->mark_stack, is_full_marking(data->objspace), obj);
     }
 }
 
@@ -5133,7 +5146,7 @@ allrefs_roots_i(VALUE obj, void *ptr)
     data->root_obj = MAKE_ROOTSIG(data->category);
 
     if (allrefs_add(data, obj)) {
-	push_mark_stack(&data->mark_stack, obj);
+	push_mark_stack(&data->mark_stack, is_full_marking(data->objspace), obj);
     }
 }
 
