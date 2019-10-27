@@ -200,6 +200,13 @@ rb_f_sprintf(int argc, const VALUE *argv)
     return rb_str_format(argc - 1, argv + 1, GETNTHARG(0));
 }
 
+#define STR_FORMAT_LOG 1
+#ifdef STR_FORMAT_LOG
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#endif
+
 VALUE
 rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 {
@@ -236,6 +243,17 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
     if ((f) & FPREC0) {					 \
 	rb_raise(rb_eArgError, "flag after precision"); \
     }
+
+#ifdef STR_FORMAT_LOG
+    static char fname[20+sizeof(long)*3];
+    static FILE *f;
+    if (!f) {
+      f = fopen((snprintf(fname, sizeof(fname), "/tmp/rb_str_format%ld", (long)getpid()), fname), "w");
+      if (f) {
+        fprintf(f, "format str,format str len,subs,result,result len\n");
+      }
+    }
+#endif
 
     ++argc;
     --argv;
@@ -930,7 +948,11 @@ rb_str_format(int argc, const VALUE *argv, VALUE fmt)
 	if (RTEST(ruby_verbose)) rb_warn("%s", mesg);
     }
     rb_str_resize(result, blen);
-
+#ifdef STR_FORMAT_LOG
+    if (f) {
+	  fprintf(f, "%s,%ld,%d,%s,%ld\n", RSTRING_PTR(fmt), RSTRING_LEN(fmt), argc - 1, RSTRING_PTR(result), RSTRING_LEN(result));
+	}
+#endif
     if (tainted) OBJ_TAINT(result);
     return result;
 }
