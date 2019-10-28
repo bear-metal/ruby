@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+
+def plot ps
+  IO.popen('gnuplot', 'a+'){|io|
+    io.puts ps.join("\n")
+    io.close_write
+  }
+end
+
+def plot_result file
+  ps = []
+  ps << 'set datafile separator ","'
+  ps << 'set terminal png size 1280,480'
+  ps << "set out 'rb_str_format.png'"
+  ps << "set title 'Format VS result string size'"
+  ps << 'set key outside'
+  ps << "plot '#{file}' u 2 w linespoints pointtype 4 title 'format string size', '#{file}' u 5 w linespoints pointtype 8 title 'result string size'"
+  #ps << "plot "
+
+  plot ps
+end
+
+plot_result ARGV[0]
