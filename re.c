@@ -15,6 +15,7 @@
 #include "internal.h"
 #include "regint.h"
 #include "encindex.h"
+#include "debug_counter.h"
 #include <ctype.h>
 
 VALUE rb_eRegexpError;
@@ -2951,6 +2952,7 @@ rb_reg_new(const char *s, long len, int options)
 VALUE
 rb_reg_compile(VALUE str, int options, const char *sourcefile, int sourceline)
 {
+    regex_t *reg;
     VALUE re = rb_reg_alloc();
     onig_errmsg_buffer err = "";
 
@@ -2958,6 +2960,20 @@ rb_reg_compile(VALUE str, int options, const char *sourcefile, int sourceline)
     if (rb_reg_initialize_str(re, str, options, err, sourcefile, sourceline) != 0) {
 	rb_set_errinfo(rb_reg_error_desc(str, options, err));
 	return Qnil;
+    }
+    // Right size literal regular expression buffers
+    reg = RREGEXP_PTR(re);
+    if (reg->alloc > reg->used) {
+      unsigned char *new_ptr = xrealloc(reg->p, reg->used);
+      // Skip the right size optimization if memory allocation fails
+      if (new_ptr) {
+#if USE_DEBUG_COUNTER
+        RB_DEBUG_COUNTER_INC(obj_regexp_lit_extracapa);
+        rb_debug_counter_add(RB_DEBUG_COUNTER_obj_regexp_lit_extracapa_bytes, reg->alloc - reg->used, 1);
+#endif
+        reg->alloc = reg->used;
+        reg->p = new_ptr;
+      }
     }
     FL_SET(re, REG_LITERAL);
     return re;

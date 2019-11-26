@@ -246,6 +246,8 @@ RB_DEBUG_COUNTER(obj_struct_transient)
 RB_DEBUG_COUNTER(obj_struct_ptr)
 
 RB_DEBUG_COUNTER(obj_regexp_ptr)
+RB_DEBUG_COUNTER(obj_regexp_lit_extracapa)
+RB_DEBUG_COUNTER(obj_regexp_lit_extracapa_bytes)
 
 RB_DEBUG_COUNTER(obj_data_empty)
 RB_DEBUG_COUNTER(obj_data_xfree)
